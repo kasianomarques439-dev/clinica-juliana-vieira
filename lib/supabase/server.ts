@@ -1,0 +1,31 @@
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import type { Database } from "@/types/database";
+
+// Cliente Supabase para uso em Server Components / Route Handlers.
+// Continua usando a chave publica; a autenticacao vem dos cookies da sessao.
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // chamado a partir de um Server Component sem permissao de escrita;
+            // pode ser ignorado se houver um middleware atualizando a sessao.
+          }
+        },
+      },
+    }
+  );
+}

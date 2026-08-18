@@ -1,0 +1,12 @@
+Coloque aqui o video de fundo da pagina inicial com o nome:
+
+hero.mp4
+
+Recomendacoes:
+- Formato MP4 (H.264), sem audio ou com audio removido (o video toca em "muted").
+- Ate 15-20 segundos, em loop.
+- Peso ideal: abaixo de 8-10 MB para carregar rapido no celular.
+- Resolucao 1920x1080 e suficiente (nao precisa de 4K).
+
+O componente components/Hero.tsx ja esta configurado para usar
+/public/videos/hero.mp4 automaticamente assim que voce colocar o arquivo aqui.

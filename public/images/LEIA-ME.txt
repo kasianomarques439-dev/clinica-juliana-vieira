@@ -1,0 +1,7 @@
+Coloque aqui as imagens reais da clinica:
+- logo.svg (ou logo.png) -> logo usado no cabecalho do site
+- hero-poster.jpg -> imagem que aparece enquanto o video de fundo carrega
+- fotos dos procedimentos, se quiser usar em vez do campo image_url do banco
+
+Um logo temporario (logo.svg) ja foi criado para o site nao quebrar visualmente.
+Substitua pelo logo real da Juliana Vieira quando tiver o arquivo.
