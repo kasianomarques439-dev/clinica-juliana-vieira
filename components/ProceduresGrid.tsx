@@ -7,25 +7,57 @@ export default function ProceduresGrid({
   procedures: Procedure[];
 }) {
   return (
-    <section id="procedimentos" className="container-clinic py-20 md:py-28">
-      <p className="text-clinic-sage-dark text-sm tracking-[0.2em] uppercase mb-3">
-        Catalogo
-      </p>
-      <h2 className="font-display text-3xl md:text-4xl text-clinic-ink max-w-xl">
-        Procedimentos
-      </h2>
+    <section
+      id="procedimentos"
+      className="
+        w-full
+        bg-gradient-to-br
+        from-[#7d4aa0]
+        via-[#8652a8]
+        to-[#684083]
+        py-10
+        md:py-12
+      "
+    >
+      <div className="mx-auto w-full max-w-[1450px] px-4 sm:px-6 lg:px-8">
+        {/* TÍTULO */}
+        <div className="mb-7">
+          <p className="text-xs uppercase tracking-[0.28em] text-white/70">
+            Catálogo
+          </p>
 
-      {procedures.length === 0 ? (
-        <p className="mt-8 text-clinic-ink/60">
-          Nenhum procedimento cadastrado no momento.
-        </p>
-      ) : (
-        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {procedures.map((procedure) => (
-            <ProcedureCard key={procedure.id} procedure={procedure} />
-          ))}
+          <h2 className="mt-2 font-display text-3xl font-semibold text-white md:text-4xl">
+            Procedimentos
+          </h2>
+
+          <p className="mt-2 text-sm text-white/80">
+            Escolha o procedimento que deseja conhecer.
+          </p>
         </div>
-      )}
+
+        {procedures.length === 0 ? (
+          <p className="text-white/70">
+            Nenhum procedimento cadastrado no momento.
+          </p>
+        ) : (
+          <div
+            className="
+              grid
+              grid-cols-1
+              gap-4
+              sm:grid-cols-2
+              xl:grid-cols-4
+            "
+          >
+            {procedures.map((procedure) => (
+              <ProcedureCard
+                key={procedure.id}
+                procedure={procedure}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
 }

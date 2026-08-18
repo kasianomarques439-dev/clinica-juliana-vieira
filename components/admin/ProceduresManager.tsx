@@ -1,179 +1,342 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Procedure } from "@/types/database";
-import { formatPriceCents } from "@/lib/utils";
+import type {
+  Procedure,
+  ProcedureInsert,
+  ProcedureUpdate,
+} from "@/types/database";
 
 export default function ProceduresManager() {
-  const supabase = createClient();
   const [procedures, setProcedures] = useState<Procedure[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [duration, setDuration] = useState(60);
-  const [priceReais, setPriceReais] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function load() {
+  const [name, setName] = useState("");
+  const [shortDescription, setShortDescription] = useState("");
+  const [description, setDescription] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+
+  const loadProcedures = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    setError(null);
+
+    const supabase = createClient();
+
+    const { data, error: loadError } = await supabase
       .from("procedures")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("display_order", { ascending: true });
+
+    if (loadError) {
+      console.error(
+        "Erro ao carregar procedimentos:",
+        loadError
+      );
+
+      setError("Não foi possível carregar os procedimentos.");
+      setProcedures([]);
+      setLoading(false);
+      return;
+    }
+
     setProcedures(data ?? []);
     setLoading(false);
-  }
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleCreate(e: FormEvent) {
-    e.preventDefault();
+  useEffect(() => {
+    void loadProcedures();
+  }, [loadProcedures]);
+
+  async function handleCreate(
+    event: FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
     setError(null);
-    if (!name.trim()) return setError("Informe o nome do procedimento.");
+
+    const procedureName = name.trim();
+
+    if (!procedureName) {
+      setError("Informe o nome do procedimento.");
+      return;
+    }
+
     setSaving(true);
 
-    const priceCents = priceReais
-      ? Math.round(parseFloat(priceReais.replace(",", ".")) * 100)
-      : null;
+    const supabase = createClient();
 
-    const { error: insertError } = await supabase.from("procedures").insert({
-      name: name.trim(),
+    const newProcedure: ProcedureInsert = {
+      name: procedureName,
+      short_description: shortDescription.trim(),
       description: description.trim(),
-      duration_minutes: duration,
-      price_cents: priceCents,
+      image_url: imageUrl.trim() || null,
       is_active: true,
-    });
+    };
 
-    setSaving(false);
+    const { error: insertError } = await supabase
+      .from("procedures")
+      .insert(newProcedure);
 
     if (insertError) {
-      setError("Nao foi possivel salvar. Tente novamente.");
+      console.error(
+        "Erro ao cadastrar procedimento:",
+        insertError
+      );
+
+      setError("Não foi possível salvar o procedimento.");
+      setSaving(false);
       return;
     }
 
     setName("");
+    setShortDescription("");
     setDescription("");
-    setDuration(60);
-    setPriceReais("");
-    load();
+    setImageUrl("");
+    setSaving(false);
+
+    await loadProcedures();
   }
 
   async function toggleActive(procedure: Procedure) {
-    await supabase
+    setError(null);
+
+    const supabase = createClient();
+
+    const changes: ProcedureUpdate = {
+      is_active: !procedure.is_active,
+    };
+
+    const { error: updateError } = await supabase
       .from("procedures")
-      .update({ is_active: !procedure.is_active })
+      .update(changes)
       .eq("id", procedure.id);
-    load();
+
+    if (updateError) {
+      console.error(
+        "Erro ao alterar procedimento:",
+        updateError
+      );
+
+      setError("Não foi possível alterar o procedimento.");
+      return;
+    }
+
+    await loadProcedures();
   }
 
-  async function remove(procedure: Procedure) {
-    if (!confirm(`Remover "${procedure.name}"?`)) return;
-    await supabase.from("procedures").delete().eq("id", procedure.id);
-    load();
+  async function removeProcedure(procedure: Procedure) {
+    const confirmed = window.confirm(
+      `Deseja realmente excluir "${procedure.name}"?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+
+    const supabase = createClient();
+
+    const { error: deleteError } = await supabase
+      .from("procedures")
+      .delete()
+      .eq("id", procedure.id);
+
+    if (deleteError) {
+      console.error(
+        "Erro ao excluir procedimento:",
+        deleteError
+      );
+
+      setError("Não foi possível excluir o procedimento.");
+      return;
+    }
+
+    await loadProcedures();
   }
 
   return (
-    <div className="grid md:grid-cols-2 gap-8">
-      <div>
-        <h3 className="font-display text-lg mb-4">Novo procedimento</h3>
-        <form onSubmit={handleCreate} className="space-y-3">
-          <input
-            placeholder="Nome"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-clinic border border-clinic-line px-4 py-2.5"
-          />
-          <textarea
-            placeholder="Descricao"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-clinic border border-clinic-line px-4 py-2.5"
-            rows={3}
-          />
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="block text-xs text-clinic-ink/60 mb-1">
-                Duracao (min)
-              </label>
-              <input
-                type="number"
-                min={5}
-                value={duration}
-                onChange={(e) => setDuration(Number(e.target.value))}
-                className="w-full rounded-clinic border border-clinic-line px-4 py-2.5"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="block text-xs text-clinic-ink/60 mb-1">
-                Preco (R$, opcional)
-              </label>
-              <input
-                placeholder="180,00"
-                value={priceReais}
-                onChange={(e) => setPriceReais(e.target.value)}
-                className="w-full rounded-clinic border border-clinic-line px-4 py-2.5"
-              />
-            </div>
+    <div className="grid gap-8 md:grid-cols-2">
+      <section>
+        <h3 className="mb-4 font-display text-xl text-[#6f4590]">
+          Novo procedimento
+        </h3>
+
+        <form
+          onSubmit={handleCreate}
+          className="space-y-4"
+        >
+          <div>
+            <label
+              htmlFor="procedure-name"
+              className="mb-1 block text-sm"
+            >
+              Nome do procedimento
+            </label>
+
+            <input
+              id="procedure-name"
+              type="text"
+              value={name}
+              onChange={(event) =>
+                setName(event.target.value)
+              }
+              placeholder="Ex.: Preenchimento Labial"
+              className="w-full rounded-xl border border-[#76509a]/20 px-4 py-3"
+            />
           </div>
-          {error && <p className="text-sm text-red-700">{error}</p>}
+
+          <div>
+            <label
+              htmlFor="procedure-short-description"
+              className="mb-1 block text-sm"
+            >
+              Descrição curta
+            </label>
+
+            <input
+              id="procedure-short-description"
+              type="text"
+              value={shortDescription}
+              onChange={(event) =>
+                setShortDescription(event.target.value)
+              }
+              placeholder="Ex.: Volume, contorno e definição dos lábios."
+              className="w-full rounded-xl border border-[#76509a]/20 px-4 py-3"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="procedure-description"
+              className="mb-1 block text-sm"
+            >
+              Descrição completa
+            </label>
+
+            <textarea
+              id="procedure-description"
+              value={description}
+              onChange={(event) =>
+                setDescription(event.target.value)
+              }
+              placeholder="Descrição completa do procedimento..."
+              rows={5}
+              className="w-full rounded-xl border border-[#76509a]/20 px-4 py-3"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="procedure-image"
+              className="mb-1 block text-sm"
+            >
+              Caminho da imagem
+            </label>
+
+            <input
+              id="procedure-image"
+              type="text"
+              value={imageUrl}
+              onChange={(event) =>
+                setImageUrl(event.target.value)
+              }
+              placeholder="/images/procedimentos/labial.png"
+              className="w-full rounded-xl border border-[#76509a]/20 px-4 py-3"
+            />
+
+            <p className="mt-1 text-xs text-gray-500">
+              Exemplo: /images/procedimentos/botox.png
+            </p>
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-600">
+              {error}
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={saving}
-            className="rounded-clinic bg-clinic-sage-dark px-5 py-2.5 text-white text-sm disabled:opacity-60"
+            className="rounded-full bg-[#76509a] px-7 py-3 font-semibold text-white transition hover:bg-[#56366f] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {saving ? "Salvando..." : "Adicionar procedimento"}
+            {saving
+              ? "Salvando..."
+              : "Adicionar procedimento"}
           </button>
         </form>
-      </div>
+      </section>
 
-      <div>
-        <h3 className="font-display text-lg mb-4">Procedimentos cadastrados</h3>
-        {loading && <p className="text-sm text-clinic-ink/60">Carregando...</p>}
-        <ul className="space-y-3">
-          {procedures.map((p) => (
-            <li
-              key={p.id}
-              className="rounded-clinic border border-clinic-line bg-white p-4 flex items-start justify-between gap-3"
-            >
-              <div>
-                <p className="font-medium">
-                  {p.name}{" "}
-                  {!p.is_active && (
-                    <span className="text-xs text-clinic-ink/40">
-                      (inativo)
-                    </span>
+      <section>
+        <h3 className="mb-4 font-display text-xl text-[#6f4590]">
+          Procedimentos cadastrados
+        </h3>
+
+        {loading ? (
+          <p className="text-sm text-gray-500">
+            Carregando...
+          </p>
+        ) : procedures.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            Nenhum procedimento cadastrado.
+          </p>
+        ) : (
+          <ul className="space-y-3">
+            {procedures.map((procedure) => (
+              <li
+                key={procedure.id}
+                className="flex items-start justify-between gap-4 rounded-2xl border border-[#76509a]/15 bg-white p-4 shadow-sm"
+              >
+                <div>
+                  <p className="font-semibold text-[#56366f]">
+                    {procedure.name}
+                  </p>
+
+                  {procedure.short_description && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      {procedure.short_description}
+                    </p>
                   )}
-                </p>
-                <p className="text-xs text-clinic-ink/60">
-                  {p.duration_minutes} min &middot;{" "}
-                  {formatPriceCents(p.price_cents)}
-                </p>
-              </div>
-              <div className="flex gap-3 text-xs shrink-0">
-                <button
-                  onClick={() => toggleActive(p)}
-                  className="underline text-clinic-sage-dark"
-                >
-                  {p.is_active ? "Desativar" : "Ativar"}
-                </button>
-                <button
-                  onClick={() => remove(p)}
-                  className="underline text-red-600"
-                >
-                  Excluir
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+
+                  {!procedure.is_active && (
+                    <p className="mt-1 text-xs text-red-500">
+                      Procedimento inativo
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex shrink-0 gap-3 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void toggleActive(procedure);
+                    }}
+                    className="font-semibold text-[#76509a] underline"
+                  >
+                    {procedure.is_active
+                      ? "Desativar"
+                      : "Ativar"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void removeProcedure(procedure);
+                    }}
+                    className="font-semibold text-red-600 underline"
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
