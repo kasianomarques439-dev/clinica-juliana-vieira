@@ -203,14 +203,17 @@ export default function BookingForm() {
 
   /*
    * TODA VEZ QUE O PROCEDIMENTO MUDA,
-   * BUSCA SOMENTE OS HORÁRIOS DELE.
+   * BUSCA A AGENDA GLOBAL DA CLÍNICA.
+   *
+   * Os horários não pertencem mais a um procedimento.
+   * procedure_id fica NULL em available_slots.
+   * O procedimento escolhido continua sendo salvo no agendamento.
    */
   useEffect(() => {
     if (!procedure) {
       return;
     }
 
-    const selectedProcedure = procedure;
     let active = true;
 
     async function loadSlots() {
@@ -224,10 +227,6 @@ export default function BookingForm() {
       const result = await supabase
         .from("available_slots")
         .select("*")
-        .eq(
-          "procedure_id",
-          selectedProcedure.id
-        )
         .eq("status", "open")
         .gte("slot_date", today)
         .order("slot_date", {
@@ -327,21 +326,6 @@ export default function BookingForm() {
       setError(
         "Escolha uma data e um horário."
       );
-      return;
-    }
-
-    if (
-      selectedSlot.procedure_id !==
-      procedure.id
-    ) {
-      setError(
-        "O horário selecionado não pertence a este procedimento."
-      );
-
-      setSelectedDate(null);
-      setSelectedSlot(null);
-      setStep("slot");
-
       return;
     }
 

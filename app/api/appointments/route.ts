@@ -1,14 +1,15 @@
-import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
-import { createAdminClient } from "@/lib/supabase/admin";
 import { sendNewAppointmentEmail } from "@/lib/email";
 import { isValidPhone } from "@/lib/utils";
 
-const bodySchema = z.object({
-  slotId: z.string().uuid(),
+export const runtime = "nodejs";
 
-  procedureId: z.string().uuid(),
+const bodySchema = z.object({
+  slotId: z.string().uuid("Horário inválido"),
+
+  procedureId: z.string().uuid("Procedimento inválido"),
 
   fullName: z
     .string()
@@ -19,51 +20,78 @@ const bodySchema = z.object({
   phone: z
     .string()
     .trim()
-    .refine(
-      isValidPhone,
-      "Celular inválido"
-    ),
+    .refine(isValidPhone, "Celular inválido"),
 
   email: z
     .string()
     .trim()
     .email("E-mail inválido")
     .max(254)
-    .transform((value) =>
-      value.toLowerCase()
-    ),
+    .transform((value) => value.toLowerCase()),
 });
+
+function jsonResponse(
+  body: Record<string, unknown>,
+  status: number
+) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+function createServerSupabaseClient() {
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  const serviceRoleKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_URL não configurada."
+    );
+  }
+
+  if (!serviceRoleKey) {
+    throw new Error(
+      "SUPABASE_SERVICE_ROLE_KEY não configurada."
+    );
+  }
+
+  return createClient(
+    supabaseUrl,
+    serviceRoleKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  );
+}
 
 export async function POST(
   request: Request
 ) {
   try {
-    /*
-     * =========================================================
-     * 1. LÊ O JSON RECEBIDO
-     * =========================================================
-     */
     const json = await request
       .json()
       .catch(() => null);
 
-    /*
-     * =========================================================
-     * 2. VALIDA OS DADOS
-     * =========================================================
-     */
     const parsed =
       bodySchema.safeParse(json);
 
     if (!parsed.success) {
-      return NextResponse.json(
+      return jsonResponse(
         {
           error:
-            "Dados inválidos. Confira nome, telefone e e-mail.",
+            "Dados inválidos. Confira procedimento, horário, nome, telefone e e-mail.",
         },
-        {
-          status: 400,
-        }
+        400
       );
     }
 
@@ -75,29 +103,16 @@ export async function POST(
       email,
     } = parsed.data;
 
-    /*
-     * =========================================================
-     * 3. CLIENTE ADMIN DO SUPABASE
-     * =========================================================
-     */
     const supabase =
-      createAdminClient();
+      createServerSupabaseClient();
 
     /*
      * =========================================================
-     * 4. VALIDA O PROCEDIMENTO
-     *
-     * IMPORTANTE:
-     * Em vez de selecionar is_active e depois acessar:
-     *
-     * procedure.is_active
-     *
-     * filtramos diretamente no banco:
-     *
-     * .eq("is_active", true)
-     *
-     * Isso corrige o erro de TypeScript do deploy da Vercel.
+     * 1. VALIDA O PROCEDIMENTO
      * =========================================================
+     *
+     * O procedimento continua obrigatório e é salvo
+     * no agendamento, mas NÃO pertence mais ao slot.
      */
     const {
       data: procedure,
@@ -120,21 +135,27 @@ export async function POST(
         );
       }
 
-      return NextResponse.json(
+      return jsonResponse(
         {
           error:
             "Procedimento indisponível.",
         },
-        {
-          status: 400,
-        }
+        400
       );
     }
 
     /*
      * =========================================================
-     * 5. VALIDA O HORÁRIO
+     * 2. VALIDA O HORÁRIO GLOBAL
      * =========================================================
+     *
+     * IMPORTANTE:
+     * O slot agora é GLOBAL.
+     *
+     * Não fazemos mais:
+     * slot.procedure_id === procedureId
+     *
+     * porque procedure_id do slot fica NULL.
      */
     const {
       data: slot,
@@ -142,7 +163,7 @@ export async function POST(
     } = await supabase
       .from("available_slots")
       .select(
-        "id, procedure_id, slot_date, slot_time, status"
+        "id, slot_date, slot_time, status"
       )
       .eq("id", slotId)
       .maybeSingle();
@@ -158,66 +179,55 @@ export async function POST(
         );
       }
 
-      return NextResponse.json(
+      return jsonResponse(
         {
           error:
             "Horário não encontrado.",
         },
-        {
-          status: 404,
-        }
+        404
       );
     }
 
     /*
      * =========================================================
-     * 6. CONFERE SE O HORÁRIO PERTENCE AO PROCEDIMENTO
-     * =========================================================
-     */
-    if (
-      slot.procedure_id !==
-      procedureId
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Este horário não pertence ao procedimento selecionado.",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    /*
-     * =========================================================
-     * 7. CONFERE SE O HORÁRIO AINDA ESTÁ ABERTO
+     * 3. CONFERE SE O HORÁRIO ESTÁ LIVRE
      * =========================================================
      */
     if (
       slot.status !== "open"
     ) {
-      return NextResponse.json(
+      return jsonResponse(
         {
           error:
             "Este horário não está mais disponível.",
         },
-        {
-          status: 409,
-        }
+        409
       );
     }
 
     /*
      * =========================================================
-     * 8. NORMALIZA O TELEFONE
-     *
-     * Exemplo:
-     * (55) 99999-9999
-     *
-     * vira:
-     *
-     * 55999999999
+     * 4. NÃO PERMITE HORÁRIO NO PASSADO
+     * =========================================================
+     */
+    const today =
+      new Date().toISOString().slice(0, 10);
+
+    if (
+      slot.slot_date < today
+    ) {
+      return jsonResponse(
+        {
+          error:
+            "Não é possível agendar um horário passado.",
+        },
+        400
+      );
+    }
+
+    /*
+     * =========================================================
+     * 5. NORMALIZA TELEFONE
      * =========================================================
      */
     const normalizedPhone =
@@ -225,11 +235,17 @@ export async function POST(
 
     /*
      * =========================================================
-     * 9. CRIA O AGENDAMENTO
-     *
-     * A função create_appointment do Supabase faz a reserva
-     * protegida contra dois clientes pegarem o mesmo horário.
+     * 6. CRIA O AGENDAMENTO
      * =========================================================
+     *
+     * A RPC no banco:
+     * - trava o slot com FOR UPDATE;
+     * - confirma se ainda está open;
+     * - salva o procedimento escolhido;
+     * - muda o slot global para booked.
+     *
+     * Portanto duas clientes não conseguem ficar
+     * com o mesmo dia/horário.
      */
     const {
       data: appointmentId,
@@ -251,11 +267,6 @@ export async function POST(
       }
     );
 
-    /*
-     * =========================================================
-     * 10. TRATA ERROS DA FUNÇÃO DE AGENDAMENTO
-     * =========================================================
-     */
     if (appointmentError) {
       console.error(
         "Erro na create_appointment:",
@@ -263,7 +274,8 @@ export async function POST(
       );
 
       const message =
-        appointmentError.message.toLowerCase();
+        appointmentError.message
+          .toLowerCase();
 
       const unavailable =
         message.includes(
@@ -280,17 +292,21 @@ export async function POST(
         ) ||
         message.includes(
           "booked"
+        ) ||
+        message.includes(
+          "horário"
+        ) ||
+        message.includes(
+          "horario"
         );
 
       if (unavailable) {
-        return NextResponse.json(
+        return jsonResponse(
           {
             error:
               "Este horário acabou de ser reservado por outra pessoa. Escolha outro horário.",
           },
-          {
-            status: 409,
-          }
+          409
         );
       }
 
@@ -299,28 +315,24 @@ export async function POST(
           "procedimento"
         )
       ) {
-        return NextResponse.json(
+        return jsonResponse(
           {
             error:
-              "Procedimento inválido para este horário.",
+              "O procedimento selecionado não está disponível.",
           },
-          {
-            status: 400,
-          }
+          400
         );
       }
 
       if (
         message.includes("nome")
       ) {
-        return NextResponse.json(
+        return jsonResponse(
           {
             error:
               "Informe um nome válido.",
           },
-          {
-            status: 400,
-          }
+          400
         );
       }
 
@@ -329,56 +341,78 @@ export async function POST(
           "telefone"
         )
       ) {
-        return NextResponse.json(
+        return jsonResponse(
           {
             error:
               "Informe um celular válido.",
           },
-          {
-            status: 400,
-          }
+          400
         );
       }
 
-      return NextResponse.json(
+      if (
+        message.includes(
+          "domingo"
+        )
+      ) {
+        return jsonResponse(
+          {
+            error:
+              "Não há atendimento aos domingos.",
+          },
+          400
+        );
+      }
+
+      if (
+        message.includes(
+          "período de atendimento"
+        ) ||
+        message.includes(
+          "periodo de atendimento"
+        )
+      ) {
+        return jsonResponse(
+          {
+            error:
+              "Horário fora do período de atendimento.",
+          },
+          400
+        );
+      }
+
+      return jsonResponse(
         {
           error:
             "Não foi possível confirmar o agendamento. Tente novamente.",
         },
-        {
-          status: 500,
-        }
+        500
       );
     }
 
-    /*
-     * =========================================================
-     * 11. GARANTE QUE A RPC RETORNOU O ID
-     * =========================================================
-     */
     if (!appointmentId) {
       console.error(
         "A RPC create_appointment não retornou o ID do agendamento."
       );
 
-      return NextResponse.json(
+      return jsonResponse(
         {
           error:
             "Não foi possível confirmar o agendamento.",
         },
-        {
-          status: 500,
-        }
+        500
       );
     }
 
     /*
      * =========================================================
-     * 12. SALVA O E-MAIL DO CLIENTE
-     *
-     * A RPC atual ainda não recebe e-mail.
-     * Por isso salvamos logo após criar o agendamento.
+     * 7. SALVA O E-MAIL DO CLIENTE
      * =========================================================
+     *
+     * A RPC ainda recebe:
+     * horário, procedimento, nome e telefone.
+     *
+     * Por isso o email é salvo logo depois.
      */
     const {
       error: emailSaveError,
@@ -401,37 +435,35 @@ export async function POST(
 
     /*
      * =========================================================
-     * 13. ENVIA NOTIFICAÇÃO POR E-MAIL
-     *
-     * Falha no e-mail NÃO cancela um agendamento que já foi
-     * confirmado no banco.
+     * 8. ENVIA E-MAIL PARA A CLÍNICA
      * =========================================================
+     *
+     * Falha no envio do e-mail não cancela
+     * o agendamento já confirmado.
      */
     try {
-      await sendNewAppointmentEmail(
-        {
-          fullName:
-            fullName.trim(),
+      await sendNewAppointmentEmail({
+        fullName:
+          fullName.trim(),
 
-          phone:
-            normalizedPhone,
+        phone:
+          normalizedPhone,
 
-          email,
+        email,
 
-          procedure: {
-            name:
-              procedure.name,
-          },
+        procedure: {
+          name:
+            procedure.name,
+        },
 
-          slot: {
-            slot_date:
-              slot.slot_date,
+        slot: {
+          slot_date:
+            slot.slot_date,
 
-            slot_time:
-              slot.slot_time,
-          },
-        }
-      );
+          slot_time:
+            slot.slot_time,
+        },
+      });
     } catch (emailError) {
       console.error(
         "Falha ao enviar e-mail de notificação:",
@@ -441,16 +473,14 @@ export async function POST(
 
     /*
      * =========================================================
-     * 14. SUCESSO
+     * 9. SUCESSO
      * =========================================================
      */
-    return NextResponse.json(
+    return jsonResponse(
       {
         id: appointmentId,
       },
-      {
-        status: 201,
-      }
+      201
     );
   } catch (error) {
     console.error(
@@ -458,14 +488,12 @@ export async function POST(
       error
     );
 
-    return NextResponse.json(
+    return jsonResponse(
       {
         error:
           "Erro interno. Tente novamente.",
       },
-      {
-        status: 500,
-      }
+      500
     );
   }
 }
