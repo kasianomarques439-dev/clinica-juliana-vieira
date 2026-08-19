@@ -596,10 +596,16 @@ export default function BookingForm() {
       }
 
       setSlots((current) =>
-        current.filter(
+        current.map(
           (slot) =>
-            slot.id !==
+            slot.id ===
             selectedSlot.id
+              ? {
+                  ...slot,
+                  status:
+                    "booked",
+                }
+              : slot
         )
       );
 
@@ -1205,9 +1211,6 @@ export default function BookingForm() {
                                 </button>
                               );
                             }
-                          )}
-                              </button>
-                            )
                           )}
                         </div>
                       </div>
