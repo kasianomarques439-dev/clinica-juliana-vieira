@@ -14,10 +14,6 @@ export default function ProcedureCard({
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  /*
-   * GARANTE QUE O PORTAL
-   * SÓ SEJA CRIADO NO NAVEGADOR
-   */
   useEffect(() => {
     setMounted(true);
 
@@ -26,10 +22,6 @@ export default function ProcedureCard({
     };
   }, []);
 
-  /*
-   * TRAVA A ROLAGEM DO SITE
-   * ENQUANTO O MODAL ESTIVER ABERTO
-   */
   useEffect(() => {
     if (!open) {
       return;
@@ -38,15 +30,9 @@ export default function ProcedureCard({
     const body = document.body;
     const html = document.documentElement;
 
-    const previousBodyOverflow =
-      body.style.overflow;
-
-    const previousBodyOverscroll =
-      body.style.overscrollBehavior;
-
-    const previousHtmlOverflow =
-      html.style.overflow;
-
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyOverscroll = body.style.overscrollBehavior;
+    const previousHtmlOverflow = html.style.overflow;
     const previousHtmlOverscroll =
       html.style.overscrollBehavior;
 
@@ -56,18 +42,13 @@ export default function ProcedureCard({
     html.style.overflow = "hidden";
     html.style.overscrollBehavior = "none";
 
-    function handleEscape(
-      event: KeyboardEvent
-    ) {
+    function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setOpen(false);
       }
     }
 
-    window.addEventListener(
-      "keydown",
-      handleEscape
-    );
+    window.addEventListener("keydown", handleEscape);
 
     return () => {
       window.removeEventListener(
@@ -75,35 +56,23 @@ export default function ProcedureCard({
         handleEscape
       );
 
-      body.style.overflow =
-        previousBodyOverflow;
-
+      body.style.overflow = previousBodyOverflow;
       body.style.overscrollBehavior =
         previousBodyOverscroll;
 
-      html.style.overflow =
-        previousHtmlOverflow;
-
+      html.style.overflow = previousHtmlOverflow;
       html.style.overscrollBehavior =
         previousHtmlOverscroll;
     };
   }, [open]);
 
-  /*
-   * FECHA O MODAL,
-   * SELECIONA O PROCEDIMENTO
-   * E ROLA ATÉ O AGENDAMENTO
-   */
   function handleSchedule() {
     setOpen(false);
 
     window.dispatchEvent(
-      new CustomEvent(
-        "select-procedure-for-booking",
-        {
-          detail: procedure,
-        }
-      )
+      new CustomEvent("select-procedure-for-booking", {
+        detail: procedure,
+      })
     );
 
     window.setTimeout(() => {
@@ -116,12 +85,6 @@ export default function ProcedureCard({
     }, 200);
   }
 
-  /*
-   * MODAL PREMIUM
-   *
-   * RENDERIZADO DIRETAMENTE NO BODY
-   * PARA NÃO SER CORTADO PELO CARROSSEL
-   */
   const modal =
     mounted && open
       ? createPortal(
@@ -131,13 +94,15 @@ export default function ProcedureCard({
             aria-label={procedure.name}
             onMouseDown={(event) => {
               if (
-                event.target ===
-                event.currentTarget
+                event.target === event.currentTarget
               ) {
                 setOpen(false);
               }
             }}
             className="
+              fixed
+              inset-0
+              z-[2147483647]
               flex
               items-center
               justify-center
@@ -146,26 +111,13 @@ export default function ProcedureCard({
               py-3
               backdrop-blur-[10px]
 
-              md:px-8
-              md:py-7
-              md:backdrop-blur-[12px]
+              md:px-6
+              md:py-6
             "
             style={{
-              position: "fixed",
-              top: 0,
-              right: 0,
-              bottom: 0,
-              left: 0,
-              width: "100vw",
-              height: "100dvh",
-              zIndex: 2147483647,
               isolation: "isolate",
             }}
           >
-            {/* ================================= */}
-            {/* CARD GRANDE DO MODAL             */}
-            {/* ================================= */}
-
             <div
               onMouseDown={(event) => {
                 event.stopPropagation();
@@ -183,22 +135,19 @@ export default function ProcedureCard({
                 bg-[#fffaf5]
                 shadow-[0_30px_100px_rgba(0,0,0,0.50)]
 
-                md:max-w-[610px]
-                md:rounded-[38px]
-                md:shadow-[0_40px_130px_rgba(0,0,0,0.48)]
+                h-[calc(100dvh-26px)]
+                max-h-[820px]
 
-                lg:max-w-[630px]
+                md:h-auto
+                md:max-h-[88dvh]
+                md:max-w-[520px]
+                md:rounded-[34px]
+                md:shadow-[0_30px_90px_rgba(0,0,0,0.42)]
+
+                lg:max-w-[540px]
               "
-              style={{
-                height:
-                  "calc(100dvh - 26px)",
-                maxHeight: "860px",
-              }}
             >
-              {/* ================================= */}
-              {/* BOTÃO X                         */}
-              {/* ================================= */}
-
+              {/* FECHAR */}
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -225,26 +174,21 @@ export default function ProcedureCard({
                   backdrop-blur-md
                   transition
                   duration-200
-
                   hover:scale-105
                   hover:bg-white
-
                   active:scale-95
 
-                  md:right-6
-                  md:top-6
-                  md:h-[52px]
-                  md:w-[52px]
-                  md:text-[32px]
+                  md:right-5
+                  md:top-5
+                  md:h-[48px]
+                  md:w-[48px]
+                  md:text-[30px]
                 "
               >
                 ×
               </button>
 
-              {/* ================================= */}
-              {/* FOTO DO PROCEDIMENTO             */}
-              {/* ================================= */}
-
+              {/* FOTO */}
               <div
                 className="
                   relative
@@ -255,26 +199,24 @@ export default function ProcedureCard({
                   overflow-hidden
                   bg-[#eee4f4]
 
-                  md:h-[48%]
-                  md:min-h-[350px]
+                  md:h-[220px]
+                  md:min-h-[220px]
+
+                  lg:h-[235px]
+                  lg:min-h-[235px]
                 "
               >
                 {procedure.image_url ? (
                   <Image
-                    src={
-                      procedure.image_url
-                    }
+                    src={procedure.image_url}
                     alt={procedure.name}
                     fill
                     priority
                     sizes="
                       (max-width: 767px) 100vw,
-                      630px
+                      540px
                     "
-                    className="
-                      object-cover
-                      object-center
-                    "
+                    className="object-cover object-center"
                   />
                 ) : (
                   <div
@@ -293,7 +235,6 @@ export default function ProcedureCard({
                   </div>
                 )}
 
-                {/* SOMBRA LEVE NA FOTO */}
                 <div
                   aria-hidden="true"
                   className="
@@ -307,13 +248,9 @@ export default function ProcedureCard({
                     via-black/5
                     to-transparent
 
-                    md:h-32
+                    md:h-20
                   "
                 />
-
-                {/* ================================= */}
-                {/* CURVA                            */}
-                {/* ================================= */}
 
                 <svg
                   aria-hidden="true"
@@ -328,7 +265,7 @@ export default function ProcedureCard({
                     h-[76px]
                     w-full
 
-                    md:h-[102px]
+                    md:h-[78px]
                   "
                 >
                   <path
@@ -358,10 +295,7 @@ export default function ProcedureCard({
                 </svg>
               </div>
 
-              {/* ================================= */}
-              {/* CONTEÚDO                         */}
-              {/* ================================= */}
-
+              {/* CONTEÚDO */}
               <div
                 className="
                   relative
@@ -376,15 +310,12 @@ export default function ProcedureCard({
                   pt-[43px]
                   text-center
 
-                  md:px-12
-                  md:pb-9
-                  md:pt-[58px]
+                  md:px-8
+                  md:pb-6
+                  md:pt-[40px]
                 "
               >
-                {/* ================================= */}
-                {/* LOTUS                           */}
-                {/* ================================= */}
-
+                {/* LOTUS */}
                 <div
                   className="
                     absolute
@@ -405,9 +336,8 @@ export default function ProcedureCard({
                     text-[#76509a]
                     shadow-[0_5px_18px_rgba(118,80,154,0.12)]
 
-                    md:h-[76px]
-                    md:w-[76px]
-                    md:shadow-[0_8px_24px_rgba(118,80,154,0.15)]
+                    md:h-[64px]
+                    md:w-[64px]
                   "
                 >
                   <svg
@@ -417,8 +347,8 @@ export default function ProcedureCard({
                       h-[35px]
                       w-[35px]
 
-                      md:h-[43px]
-                      md:w-[43px]
+                      md:h-[34px]
+                      md:w-[34px]
                     "
                     aria-hidden="true"
                   >
@@ -428,35 +358,30 @@ export default function ProcedureCard({
                       strokeWidth="1.8"
                       strokeLinejoin="round"
                     />
-
                     <path
                       d="M17 17.5C24.5 19.5 29.5 24 32 31.5C23.5 31.5 18.5 27 17 17.5Z"
                       stroke="currentColor"
                       strokeWidth="1.8"
                       strokeLinejoin="round"
                     />
-
                     <path
                       d="M47 17.5C39.5 19.5 34.5 24 32 31.5C40.5 31.5 45.5 27 47 17.5Z"
                       stroke="currentColor"
                       strokeWidth="1.8"
                       strokeLinejoin="round"
                     />
-
                     <path
                       d="M11 31C20 31 26 34.5 32 40.5C21.5 43.5 14 40.5 11 31Z"
                       stroke="currentColor"
                       strokeWidth="1.8"
                       strokeLinejoin="round"
                     />
-
                     <path
                       d="M53 31C44 31 38 34.5 32 40.5C42.5 43.5 50 40.5 53 31Z"
                       stroke="currentColor"
                       strokeWidth="1.8"
                       strokeLinejoin="round"
                     />
-
                     <path
                       d="M19 45C24 46.5 28.5 46.5 32 43C35.5 46.5 40 46.5 45 45"
                       stroke="currentColor"
@@ -466,10 +391,7 @@ export default function ProcedureCard({
                   </svg>
                 </div>
 
-                {/* ================================= */}
-                {/* TÍTULO                          */}
-                {/* ================================= */}
-
+                {/* TÍTULO */}
                 <h2
                   className="
                     max-w-[380px]
@@ -481,18 +403,15 @@ export default function ProcedureCard({
                     tracking-[-0.02em]
                     text-[#633580]
 
-                    md:max-w-[520px]
-                    md:text-[43px]
+                    md:max-w-[430px]
+                    md:text-[33px]
                     md:leading-[1.04]
                   "
                 >
                   {procedure.name}
                 </h2>
 
-                {/* ================================= */}
-                {/* ORNAMENTO                       */}
-                {/* ================================= */}
-
+                {/* ORNAMENTO */}
                 <div
                   className="
                     mt-3
@@ -502,8 +421,7 @@ export default function ProcedureCard({
                     justify-center
                     gap-2.5
 
-                    md:mt-4
-                    md:gap-3
+                    md:mt-3
                   "
                 >
                   <span
@@ -511,37 +429,26 @@ export default function ProcedureCard({
                       h-px
                       w-10
                       bg-[#d9cbe3]
-
-                      md:w-14
                     "
                   />
-
                   <span
                     className="
                       text-[12px]
                       text-[#76509a]
-
-                      md:text-[14px]
                     "
                   >
                     ✦
                   </span>
-
                   <span
                     className="
                       h-px
                       w-10
                       bg-[#d9cbe3]
-
-                      md:w-14
                     "
                   />
                 </div>
 
-                {/* ================================= */}
-                {/* DESCRIÇÃO                       */}
-                {/* ================================= */}
-
+                {/* DESCRIÇÃO */}
                 <p
                   className="
                     mt-3
@@ -551,10 +458,11 @@ export default function ProcedureCard({
                     leading-[1.55]
                     text-[#575359]
 
-                    md:mt-5
-                    md:max-w-[520px]
-                    md:text-[16px]
-                    md:leading-[1.65]
+                    md:mt-3
+                    md:max-w-[430px]
+                    md:text-[14px]
+                    md:leading-[1.55]
+                    md:line-clamp-4
                   "
                 >
                   {procedure.description ||
@@ -562,17 +470,14 @@ export default function ProcedureCard({
                     "Entre em contato para saber mais sobre este procedimento."}
                 </p>
 
-                {/* ================================= */}
-                {/* DURAÇÃO                         */}
-                {/* ================================= */}
-
+                {/* DURAÇÃO */}
                 {procedure.duration_minutes && (
                   <div
                     className="
                       mt-4
                       shrink-0
 
-                      md:mt-6
+                      md:mt-4
                     "
                   >
                     <span
@@ -588,22 +493,15 @@ export default function ProcedureCard({
                         font-medium
                         text-[#704093]
 
-                        md:gap-2.5
-                        md:px-6
-                        md:py-3
-                        md:text-[14px]
+                        md:px-5
+                        md:py-2
+                        md:text-[13px]
                       "
                     >
                       <svg
                         viewBox="0 0 24 24"
                         fill="none"
-                        className="
-                          h-4
-                          w-4
-
-                          md:h-[18px]
-                          md:w-[18px]
-                        "
+                        className="h-4 w-4"
                         aria-hidden="true"
                       >
                         <circle
@@ -613,7 +511,6 @@ export default function ProcedureCard({
                           stroke="currentColor"
                           strokeWidth="1.7"
                         />
-
                         <path
                           d="M12 8V12L14.5 14"
                           stroke="currentColor"
@@ -624,18 +521,12 @@ export default function ProcedureCard({
                       </svg>
 
                       Aproximadamente{" "}
-                      {
-                        procedure.duration_minutes
-                      }{" "}
-                      min
+                      {procedure.duration_minutes} min
                     </span>
                   </div>
                 )}
 
-                {/* ================================= */}
-                {/* BOTÃO AGENDAR                   */}
-                {/* ================================= */}
-
+                {/* BOTÃO */}
                 <button
                   type="button"
                   onClick={handleSchedule}
@@ -657,17 +548,15 @@ export default function ProcedureCard({
                     shadow-[0_15px_32px_rgba(86,48,112,0.32)]
                     transition-all
                     duration-300
-
                     hover:-translate-y-0.5
                     hover:bg-[#5d347b]
-                    hover:shadow-[0_19px_38px_rgba(86,48,112,0.36)]
-
                     active:scale-[0.98]
 
-                    md:min-h-[62px]
-                    md:max-w-[470px]
-                    md:px-8
-                    md:text-[16px]
+                    md:min-h-[54px]
+                    md:max-w-[430px]
+                    md:px-6
+                    md:py-3.5
+                    md:text-[15px]
                   "
                 >
                   <span className="flex-1 text-center">
@@ -681,8 +570,6 @@ export default function ProcedureCard({
                       text-[22px]
                       font-light
                       leading-none
-
-                      md:text-[26px]
                     "
                   >
                     →
@@ -697,10 +584,6 @@ export default function ProcedureCard({
 
   return (
     <>
-      {/* ========================================= */}
-      {/* CARD NORMAL DO CATÁLOGO                  */}
-      {/* ========================================= */}
-
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -717,7 +600,6 @@ export default function ProcedureCard({
           shadow-[0_8px_22px_rgba(52,20,73,0.16)]
           transition
           duration-300
-
           hover:-translate-y-1
           hover:shadow-[0_12px_28px_rgba(52,20,73,0.25)]
 
@@ -725,8 +607,6 @@ export default function ProcedureCard({
           xl:h-[155px]
         "
       >
-        {/* FOTO DO CARD */}
-
         <div
           className="
             relative
@@ -751,7 +631,6 @@ export default function ProcedureCard({
                 object-center
                 transition-transform
                 duration-500
-
                 group-hover:scale-105
               "
             />
@@ -772,8 +651,6 @@ export default function ProcedureCard({
             </div>
           )}
         </div>
-
-        {/* CONTEÚDO DO CARD */}
 
         <div
           className="
