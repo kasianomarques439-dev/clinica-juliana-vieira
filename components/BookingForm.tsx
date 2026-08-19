@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import type {
@@ -229,18 +229,30 @@ export default function BookingForm() {
   }, []);
 
   /*
-   * TODA VEZ QUE O PROCEDIMENTO MUDA,
-   * BUSCA OS HORÁRIOS GLOBAIS LIVRES DA CLÍNICA.
+   * CARREGA OS HORÁRIOS GLOBAIS LIVRES DA CLÍNICA.
+   *
+   * Esta função é reutilizada:
+   * - quando o procedimento muda;
+   * - quando a aba volta a ficar visível;
+   * - automaticamente a cada poucos segundos.
+   *
+   * Assim, se outra pessoa reservar um horário em outro
+   * celular/computador, ele desaparece também desta tela.
    */
-  useEffect(() => {
-    if (!procedure) {
-      return;
-    }
+  const loadSlots = useCallback(
+    async (
+      showLoading = true
+    ) => {
+      if (!procedure) {
+        setSlots([]);
+        setLoadingSlots(false);
+        return;
+      }
 
-    let active = true;
+      if (showLoading) {
+        setLoadingSlots(true);
+      }
 
-    async function loadSlots() {
-      setLoadingSlots(true);
       setError(null);
 
       const today = new Date()
@@ -265,10 +277,6 @@ export default function BookingForm() {
           ascending: true,
         });
 
-      if (!active) {
-        return;
-      }
-
       if (result.error) {
         console.error(
           "Erro ao carregar horários:",
@@ -281,18 +289,123 @@ export default function BookingForm() {
           "Não foi possível carregar os horários disponíveis."
         );
       } else {
-        setSlots(result.data ?? []);
+        const newSlots =
+          result.data ?? [];
+
+        setSlots(newSlots);
+
+        /*
+         * Se o horário que a pessoa estava vendo/acessando
+         * acabou de ser reservado em outro aparelho,
+         * removemos a seleção antiga.
+         */
+        if (selectedSlot) {
+          const stillAvailable =
+            newSlots.some(
+              (slot) =>
+                slot.id ===
+                selectedSlot.id
+            );
+
+          if (!stillAvailable) {
+            setSelectedSlot(null);
+            setSelectedDate(null);
+            setStep("slot");
+            setError(
+              "Este horário acabou de ser reservado. Escolha outro horário."
+            );
+          }
+        }
       }
 
-      setLoadingSlots(false);
+      if (showLoading) {
+        setLoadingSlots(false);
+      }
+    },
+    [
+      procedure,
+      selectedSlot,
+      supabase,
+    ]
+  );
+
+  /*
+   * CARREGAMENTO NORMAL.
+   */
+  useEffect(() => {
+    void loadSlots(true);
+  }, [loadSlots]);
+
+  /*
+   * ATUALIZAÇÃO AUTOMÁTICA ENTRE APARELHOS.
+   *
+   * A cada 5 segundos faz uma consulta leve somente dos
+   * horários open da semana atual.
+   *
+   * Isso evita que um horário reservado no celular continue
+   * aparecendo livre no notebook.
+   */
+  useEffect(() => {
+    if (!procedure) {
+      return;
     }
 
-    void loadSlots();
+    const interval =
+      window.setInterval(() => {
+        void loadSlots(false);
+      }, 5000);
 
     return () => {
-      active = false;
+      window.clearInterval(
+        interval
+      );
     };
-  }, [procedure, supabase]);
+  }, [procedure, loadSlots]);
+
+  /*
+   * QUANDO A PESSOA VOLTA PARA A ABA,
+   * atualiza imediatamente.
+   */
+  useEffect(() => {
+    if (!procedure) {
+      return;
+    }
+
+    function refreshWhenVisible() {
+      if (
+        document.visibilityState ===
+        "visible"
+      ) {
+        void loadSlots(false);
+      }
+    }
+
+    function refreshOnFocus() {
+      void loadSlots(false);
+    }
+
+    document.addEventListener(
+      "visibilitychange",
+      refreshWhenVisible
+    );
+
+    window.addEventListener(
+      "focus",
+      refreshOnFocus
+    );
+
+    return () => {
+      document.removeEventListener(
+        "visibilitychange",
+        refreshWhenVisible
+      );
+
+      window.removeEventListener(
+        "focus",
+        refreshOnFocus
+      );
+    };
+  }, [procedure, loadSlots]);
 
   const slotsByDate = useMemo(() => {
     const grouped = new Map<
