@@ -65,6 +65,40 @@ function getMonth(date: string) {
     .replace(".", "");
 }
 
+function getSaturdayOfCurrentWeek(dateString: string) {
+  const date = new Date(
+    `${dateString}T12:00:00`
+  );
+
+  const dayOfWeek = date.getDay();
+
+  const daysUntilSaturday =
+    dayOfWeek === 0
+      ? 6
+      : 6 - dayOfWeek;
+
+  const saturday =
+    new Date(date);
+
+  saturday.setDate(
+    date.getDate() +
+      daysUntilSaturday
+  );
+
+  const year =
+    saturday.getFullYear();
+
+  const month = String(
+    saturday.getMonth() + 1
+  ).padStart(2, "0");
+
+  const day = String(
+    saturday.getDate()
+  ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 export default function BookingForm() {
   const supabase = useMemo(
     () => createClient(),
@@ -109,12 +143,7 @@ export default function BookingForm() {
 
   /*
    * QUANDO A PÁGINA ABRE:
-   * usa Avaliação como procedimento padrão SOMENTE se
-   * nenhum produto tiver sido escolhido ainda.
-   *
-   * O uso da atualização funcional evita um problema de corrida:
-   * se a pessoa clicar em um produto enquanto a Avaliação ainda
-   * está carregando, o produto escolhido NÃO será sobrescrito.
+   * usa Avaliação como procedimento padrão.
    */
   useEffect(() => {
     let active = true;
@@ -134,16 +163,18 @@ export default function BookingForm() {
 
       if (result.error) {
         console.error(
-          "Erro ao carregar avaliação padrão:",
+          "Erro ao carregar avaliação:",
           result.error
         );
+
         return;
       }
 
-      if (result.data) {
-        setProcedure((currentProcedure) =>
-          currentProcedure ?? result.data
-        );
+      if (
+        result.data &&
+        !procedure
+      ) {
+        setProcedure(result.data);
       }
     }
 
@@ -152,7 +183,7 @@ export default function BookingForm() {
     return () => {
       active = false;
     };
-  }, [supabase]);
+  }, [supabase, procedure]);
 
   /*
    * ESCUTA O PROCEDIMENTO CLICADO
@@ -168,11 +199,7 @@ export default function BookingForm() {
       const selectedProcedure =
         customEvent.detail;
 
-      if (
-        !selectedProcedure ||
-        !selectedProcedure.id ||
-        selectedProcedure.is_active === false
-      ) {
+      if (!selectedProcedure) {
         return;
       }
 
@@ -203,11 +230,7 @@ export default function BookingForm() {
 
   /*
    * TODA VEZ QUE O PROCEDIMENTO MUDA,
-   * BUSCA A AGENDA GLOBAL DA CLÍNICA.
-   *
-   * Os horários não pertencem mais a um procedimento.
-   * procedure_id fica NULL em available_slots.
-   * O procedimento escolhido continua sendo salvo no agendamento.
+   * BUSCA OS HORÁRIOS GLOBAIS LIVRES DA CLÍNICA.
    */
   useEffect(() => {
     if (!procedure) {
@@ -224,11 +247,17 @@ export default function BookingForm() {
         .toISOString()
         .slice(0, 10);
 
+      const saturday =
+        getSaturdayOfCurrentWeek(
+          today
+        );
+
       const result = await supabase
         .from("available_slots")
         .select("*")
         .eq("status", "open")
         .gte("slot_date", today)
+        .lte("slot_date", saturday)
         .order("slot_date", {
           ascending: true,
         })
@@ -725,7 +754,7 @@ export default function BookingForm() {
                       "
                     >
                       Nenhum horário disponível
-                      para este procedimento.
+                      no momento.
                     </p>
 
                     <p
@@ -738,10 +767,11 @@ export default function BookingForm() {
                         text-[#77716c]
                       "
                     >
-                      Novas datas podem ser
-                      disponibilizadas em breve.
-                      Você também pode entrar em
-                      contato pelo WhatsApp.
+                      Os horários livres da clínica
+                      aparecem aqui para qualquer
+                      procedimento. Se não houver opções,
+                      tente novamente mais tarde ou fale
+                      conosco pelo WhatsApp.
                     </p>
                   </div>
                 )}
@@ -794,19 +824,24 @@ export default function BookingForm() {
                             sm:block
                           "
                         >
-                          Datas disponíveis
+                          Semana atual
                         </span>
                       </div>
 
                       <div
                         className="
-                          grid
-                          grid-cols-3
+                          flex
                           gap-3
-                          sm:grid-cols-4
-                          md:grid-cols-5
-                          lg:grid-cols-7
+                          overflow-x-auto
+                          pb-2
+                          [&::-webkit-scrollbar]:hidden
                         "
+                        style={{
+                          scrollbarWidth:
+                            "none",
+                          WebkitOverflowScrolling:
+                            "touch",
+                        }}
                       >
                         {availableDates.map(
                           (date) => {
@@ -826,6 +861,9 @@ export default function BookingForm() {
                                 className={`
                                   flex
                                   min-h-[105px]
+                                  w-[150px]
+                                  min-w-[150px]
+                                  flex-none
                                   flex-col
                                   items-center
                                   justify-center
