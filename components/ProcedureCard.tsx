@@ -10,120 +10,117 @@ export default function ProcedureCard({
 }: {
   procedure: Procedure;
 }) {
-  const [open, setOpen] =
-    useState(false);
+  const [open, setOpen] = useState(false);
 
   /*
-   * TRAVA A TELA DE FUNDO
+   * =========================================================
+   * TRAVA TOTAL DA TELA DE FUNDO
+   * =========================================================
    *
-   * Quando o modal abre:
-   * - a página atrás para de rolar
-   * - o foco visual fica somente no procedimento
+   * Enquanto o modal estiver aberto:
+   * - o site atrás não rola;
+   * - o Safari/iPhone não consegue "puxar" a página;
+   * - ao fechar, volta exatamente para a mesma posição.
    */
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    /*
-     * TRAVA REAL DO FUNDO
-     *
-     * Usar somente overflow:hidden nem sempre trava
-     * completamente o Safari/iPhone.
-     *
-     * Aqui guardamos a posição atual da página,
-     * fixamos o body e restauramos exatamente o mesmo
-     * ponto quando o modal fecha.
-     */
-    const scrollY =
-      window.scrollY;
+    const scrollY = window.scrollY;
 
-    const body =
-      document.body;
+    const body = document.body;
+    const html = document.documentElement;
 
-    const html =
-      document.documentElement;
-
-    const previousBodyStyle = {
-      position:
-        body.style.position,
-      top:
-        body.style.top,
-      left:
-        body.style.left,
-      right:
-        body.style.right,
-      width:
-        body.style.width,
-      overflow:
-        body.style.overflow,
+    const previousBody = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+      touchAction: body.style.touchAction,
     };
 
-    const previousHtmlOverflow =
-      html.style.overflow;
+    const previousHtml = {
+      overflow: html.style.overflow,
+      touchAction: html.style.touchAction,
+      overscrollBehavior:
+        html.style.overscrollBehavior,
+    };
 
-    body.style.position =
-      "fixed";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+    body.style.touchAction = "none";
 
-    body.style.top =
-      `-${scrollY}px`;
+    html.style.overflow = "hidden";
+    html.style.touchAction = "none";
+    html.style.overscrollBehavior = "none";
 
-    body.style.left =
-      "0";
+    const preventScroll = (event: Event) => {
+      event.preventDefault();
+    };
 
-    body.style.right =
-      "0";
-
-    body.style.width =
-      "100%";
-
-    body.style.overflow =
-      "hidden";
-
-    html.style.overflow =
-      "hidden";
-
-    function handleEscape(
-      event: KeyboardEvent
-    ) {
-      if (
-        event.key === "Escape"
-      ) {
-        setOpen(false);
+    document.addEventListener(
+      "touchmove",
+      preventScroll,
+      {
+        passive: false,
       }
-    }
+    );
 
-    window.addEventListener(
-      "keydown",
-      handleEscape
+    document.addEventListener(
+      "wheel",
+      preventScroll,
+      {
+        passive: false,
+      }
     );
 
     return () => {
+      document.removeEventListener(
+        "touchmove",
+        preventScroll
+      );
+
+      document.removeEventListener(
+        "wheel",
+        preventScroll
+      );
+
       body.style.position =
-        previousBodyStyle.position;
+        previousBody.position;
 
       body.style.top =
-        previousBodyStyle.top;
+        previousBody.top;
 
       body.style.left =
-        previousBodyStyle.left;
+        previousBody.left;
 
       body.style.right =
-        previousBodyStyle.right;
+        previousBody.right;
 
       body.style.width =
-        previousBodyStyle.width;
+        previousBody.width;
 
       body.style.overflow =
-        previousBodyStyle.overflow;
+        previousBody.overflow;
+
+      body.style.touchAction =
+        previousBody.touchAction;
 
       html.style.overflow =
-        previousHtmlOverflow;
+        previousHtml.overflow;
 
-      window.removeEventListener(
-        "keydown",
-        handleEscape
-      );
+      html.style.touchAction =
+        previousHtml.touchAction;
+
+      html.style.overscrollBehavior =
+        previousHtml.overscrollBehavior;
 
       window.scrollTo(
         0,
@@ -135,10 +132,6 @@ export default function ProcedureCard({
   function handleSchedule() {
     setOpen(false);
 
-    /*
-     * ENVIA PARA O BOOKINGFORM
-     * O PROCEDIMENTO QUE FOI CLICADO
-     */
     window.dispatchEvent(
       new CustomEvent(
         "select-procedure-for-booking",
@@ -148,10 +141,6 @@ export default function ProcedureCard({
       )
     );
 
-    /*
-     * ESPERA O MODAL FECHAR
-     * E VAI PARA O AGENDAMENTO
-     */
     window.setTimeout(() => {
       document
         .getElementById("agendar")
@@ -159,7 +148,7 @@ export default function ProcedureCard({
           behavior: "smooth",
           block: "start",
         });
-    }, 150);
+    }, 180);
   }
 
   return (
@@ -170,9 +159,7 @@ export default function ProcedureCard({
 
       <button
         type="button"
-        onClick={() =>
-          setOpen(true)
-        }
+        onClick={() => setOpen(true)}
         className="
           group
           grid
@@ -186,16 +173,12 @@ export default function ProcedureCard({
           shadow-[0_8px_22px_rgba(52,20,73,0.16)]
           transition
           duration-300
-
           hover:-translate-y-1
           hover:shadow-[0_12px_28px_rgba(52,20,73,0.25)]
-
           sm:h-[170px]
-
           xl:h-[155px]
         "
       >
-        {/* IMAGEM DO CARD */}
         <div
           className="
             relative
@@ -207,9 +190,7 @@ export default function ProcedureCard({
         >
           {procedure.image_url ? (
             <Image
-              src={
-                procedure.image_url
-              }
+              src={procedure.image_url}
               alt={procedure.name}
               fill
               sizes="
@@ -222,7 +203,6 @@ export default function ProcedureCard({
                 object-center
                 transition-transform
                 duration-500
-
                 group-hover:scale-105
               "
             />
@@ -245,7 +225,6 @@ export default function ProcedureCard({
           )}
         </div>
 
-        {/* TEXTO DO CARD */}
         <div
           className="
             flex
@@ -264,9 +243,7 @@ export default function ProcedureCard({
               font-semibold
               leading-[1.15]
               text-[#704093]
-
               sm:text-[19px]
-
               xl:text-[18px]
             "
           >
@@ -302,363 +279,434 @@ export default function ProcedureCard({
       </button>
 
       {/* ================================================= */}
-      {/* MODAL DO PROCEDIMENTO                             */}
+      {/* MODAL PREMIUM                                     */}
       {/* ================================================= */}
 
       {open && (
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={
-            procedure.name
-          }
+          aria-label={procedure.name}
           className="
             fixed
             inset-0
-            z-[9999]
+            z-[99999]
             flex
+            h-[100dvh]
+            w-screen
             items-center
             justify-center
-            bg-black/65
+            overflow-hidden
+            bg-black/55
             p-3
             backdrop-blur-[10px]
-            overscroll-none
             touch-none
-
             sm:p-6
           "
-          onMouseDown={() =>
-            setOpen(false)
-          }
         >
-          {/* ============================================= */}
-          {/* CONTAINER DO MODAL                            */}
-          {/* ============================================= */}
-
           <div
             className="
               relative
               flex
               h-[90dvh]
-              max-h-[760px]
-              w-[96vw]
+              w-[94vw]
               max-w-[720px]
               flex-col
               overflow-hidden
-              rounded-[26px]
-              bg-white
+              rounded-[30px]
+              border
+              border-white/80
+              bg-[#fffaf4]
               shadow-[0_30px_100px_rgba(0,0,0,0.45)]
-
-              sm:max-h-[92vh]
-              sm:rounded-[30px]
+              sm:h-[90vh]
+              sm:max-h-[840px]
+              sm:rounded-[34px]
             "
-            onMouseDown={(
-              event
-            ) =>
-              event.stopPropagation()
-            }
+            style={{
+              touchAction: "none",
+              overscrollBehavior: "none",
+            }}
           >
             {/* ============================================= */}
-            {/* BOTÃO FECHAR                                  */}
+            {/* BOTÃO X                                      */}
             {/* ============================================= */}
 
             <button
               type="button"
-              onClick={() =>
-                setOpen(false)
-              }
+              onClick={() => setOpen(false)}
               aria-label="Fechar procedimento"
               className="
                 absolute
-                right-3
-                top-3
-                z-30
+                right-4
+                top-4
+                z-50
                 flex
-                h-11
-                w-11
+                h-12
+                w-12
                 items-center
                 justify-center
                 rounded-full
                 border
-                border-white/70
-                bg-white/95
-                text-[26px]
+                border-white/90
+                bg-[#fffaf4]/95
+                text-[30px]
                 font-light
                 leading-none
-                text-[#704093]
-                shadow-[0_8px_24px_rgba(0,0,0,0.20)]
+                text-[#674285]
+                shadow-[0_8px_24px_rgba(0,0,0,0.18)]
                 backdrop-blur-md
                 transition
-
-                hover:scale-105
-                hover:bg-white
-
-                sm:right-4
-                sm:top-4
+                active:scale-95
               "
+              style={{
+                touchAction: "manipulation",
+              }}
             >
               ×
             </button>
 
             {/* ============================================= */}
-            {/* ÁREA QUE PODE ROLAR                           */}
+            {/* FOTO GRANDE                                  */}
             {/* ============================================= */}
 
             <div
               className="
-                h-full
-                overflow-y-auto
-                overscroll-contain
-                touch-pan-y
-
-                [&::-webkit-scrollbar]:w-1.5
-
-                [&::-webkit-scrollbar-thumb]:rounded-full
-                [&::-webkit-scrollbar-thumb]:bg-[#76509a]/25
-
-                [&::-webkit-scrollbar-track]:bg-transparent
+                relative
+                h-[47%]
+                w-full
+                shrink-0
+                overflow-hidden
+                bg-[#eee4f4]
               "
             >
-              {/* =========================================== */}
-              {/* IMAGEM GRANDE                              */}
-              {/* =========================================== */}
-
-              <div
-                className="
-                  relative
-                  h-[42dvh]
-                  min-h-[280px]
-                  max-h-[420px]
-                  w-full
-                  overflow-hidden
-                  bg-[#eee4f4]
-
-                  sm:h-[420px]
-                "
-              >
-                {procedure.image_url ? (
-                  <Image
-                    src={
-                      procedure.image_url
-                    }
-                    alt={
-                      procedure.name
-                    }
-                    fill
-                    priority={false}
-                    sizes="
-                      (max-width: 640px) 100vw,
-                      680px
-                    "
-                    className="
-                      object-cover
-                      object-center
-                    "
-                  />
-                ) : (
-                  <div
-                    className="
-                      flex
-                      h-full
-                      items-center
-                      justify-center
-                      bg-[#eee4f4]
-                      text-sm
-                      text-[#76509a]/50
-                    "
-                  >
-                    Sem imagem
-                  </div>
-                )}
-
-                {/* SOMBRA SUAVE NA BASE DA FOTO */}
-                <div
-                  aria-hidden="true"
-                  className="
-                    pointer-events-none
-                    absolute
-                    inset-x-0
-                    bottom-0
-                    h-20
-                    bg-gradient-to-t
-                    from-black/20
-                    to-transparent
+              {procedure.image_url ? (
+                <Image
+                  src={procedure.image_url}
+                  alt={procedure.name}
+                  fill
+                  sizes="
+                    (max-width: 640px) 94vw,
+                    720px
                   "
+                  className="
+                    object-cover
+                    object-center
+                  "
+                  priority={false}
                 />
-              </div>
-
-              {/* =========================================== */}
-              {/* CONTEÚDO                                   */}
-              {/* =========================================== */}
-
-              <div
-                className="
-                  px-5
-                  pb-6
-                  pt-6
-                  text-center
-
-                  sm:px-8
-                  sm:pb-8
-                  sm:pt-7
-                "
-              >
-                <p
-                  className="
-                    text-[11px]
-                    font-semibold
-                    uppercase
-                    tracking-[0.28em]
-                    text-[#76509a]/70
-
-                    sm:text-xs
-                  "
-                >
-                  Procedimento
-                </p>
-
-                <h2
-                  className="
-                    mx-auto
-                    mt-3
-                    max-w-[560px]
-                    font-display
-                    text-[29px]
-                    font-semibold
-                    leading-[1.08]
-                    text-[#704093]
-
-                    sm:text-[38px]
-                  "
-                >
-                  {procedure.name}
-                </h2>
-
+              ) : (
                 <div
                   className="
-                    mx-auto
-                    mt-4
-                    h-px
-                    w-14
-                    bg-[#76509a]/25
-                  "
-                />
-
-                <p
-                  className="
-                    mx-auto
-                    mt-5
-                    max-w-[560px]
-                    text-[14px]
-                    leading-7
-                    text-[#5e5b5e]
-
-                    sm:text-[15px]
-                  "
-                >
-                  {procedure.description ||
-                    procedure.short_description ||
-                    "Entre em contato para saber mais sobre este procedimento."}
-                </p>
-
-                {/* DURAÇÃO */}
-                {procedure.duration_minutes && (
-                  <div
-                    className="
-                      mt-5
-                      flex
-                      justify-center
-                    "
-                  >
-                    <span
-                      className="
-                        inline-flex
-                        items-center
-                        gap-2
-                        rounded-full
-                        bg-[#f5eef9]
-                        px-4
-                        py-2
-                        text-[13px]
-                        font-medium
-                        text-[#704093]
-                      "
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        className="h-4 w-4"
-                        aria-hidden="true"
-                      >
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="8"
-                          stroke="currentColor"
-                          strokeWidth="1.7"
-                        />
-
-                        <path
-                          d="M12 8V12L14.5 14"
-                          stroke="currentColor"
-                          strokeWidth="1.7"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-
-                      Aproximadamente{" "}
-                      {
-                        procedure.duration_minutes
-                      }{" "}
-                      min
-                    </span>
-                  </div>
-                )}
-
-                {/* ========================================= */}
-                {/* BOTÃO AGENDAR                            */}
-                {/* ========================================= */}
-
-                <button
-                  type="button"
-                  onClick={
-                    handleSchedule
-                  }
-                  className="
-                    mt-7
-                    inline-flex
-                    min-h-[52px]
-                    w-full
+                    flex
+                    h-full
                     items-center
                     justify-center
-                    rounded-full
-                    bg-[#76509a]
-                    px-8
-                    py-4
                     text-sm
-                    font-semibold
-                    text-white
-                    shadow-[0_12px_28px_rgba(118,80,154,0.28)]
-                    transition-all
-                    duration-300
-
-                    hover:-translate-y-0.5
-                    hover:bg-[#56366f]
-                    hover:shadow-[0_16px_34px_rgba(118,80,154,0.32)]
-
-                    sm:w-auto
-                    sm:min-w-[300px]
+                    text-[#76509a]/50
                   "
                 >
-                  Agendar este procedimento
-                </button>
+                  Sem imagem
+                </div>
+              )}
+
+              <div
+                aria-hidden="true"
+                className="
+                  pointer-events-none
+                  absolute
+                  inset-x-0
+                  bottom-0
+                  h-20
+                  bg-gradient-to-t
+                  from-black/15
+                  to-transparent
+                "
+              />
+            </div>
+
+            {/* ============================================= */}
+            {/* CONTEÚDO CURVO                               */}
+            {/* ============================================= */}
+
+            <div
+              className="
+                relative
+                -mt-8
+                flex
+                min-h-0
+                flex-1
+                flex-col
+                items-center
+                overflow-hidden
+                bg-[#fffaf4]
+                px-5
+                pb-5
+                pt-12
+                text-center
+                sm:-mt-10
+                sm:px-8
+                sm:pb-7
+                sm:pt-14
+              "
+              style={{
+                borderRadius:
+                  "50% 50% 0 0 / 38px 38px 0 0",
+              }}
+            >
+              {/* ÍCONE CENTRAL DECORATIVO */}
+              <div
+                className="
+                  absolute
+                  left-1/2
+                  top-0
+                  flex
+                  h-16
+                  w-16
+                  -translate-x-1/2
+                  -translate-y-1/2
+                  items-center
+                  justify-center
+                  rounded-full
+                  border-2
+                  border-[#cdb9dc]
+                  bg-[#fffaf4]
+                  text-[#76509a]
+                  shadow-sm
+                "
+              >
+                <svg
+                  viewBox="0 0 64 64"
+                  fill="none"
+                  className="h-9 w-9"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M32 11C36 18 37 24 32 31C27 24 28 18 32 11Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+
+                  <path
+                    d="M18 18C25 20 30 24 32 31C24 31 19 27 18 18Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+
+                  <path
+                    d="M46 18C39 20 34 24 32 31C40 31 45 27 46 18Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+
+                  <path
+                    d="M12 31C20 31 26 34 32 40C22 43 15 40 12 31Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+
+                  <path
+                    d="M52 31C44 31 38 34 32 40C42 43 49 40 52 31Z"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </div>
+
+              <p
+                className="
+                  shrink-0
+                  text-[10px]
+                  font-semibold
+                  uppercase
+                  tracking-[0.30em]
+                  text-[#76509a]/60
+                  sm:text-xs
+                "
+              >
+                Procedimento
+              </p>
+
+              <h2
+                className="
+                  mt-2
+                  line-clamp-2
+                  shrink-0
+                  font-display
+                  text-[30px]
+                  font-semibold
+                  leading-[1.02]
+                  text-[#684086]
+                  sm:text-[40px]
+                "
+              >
+                {procedure.name}
+              </h2>
+
+              {/* DETALHE ORNAMENTAL */}
+              <div
+                className="
+                  mt-3
+                  flex
+                  shrink-0
+                  items-center
+                  gap-2
+                "
+              >
+                <span
+                  className="
+                    h-px
+                    w-10
+                    bg-[#d9cbe3]
+                  "
+                />
+
+                <span
+                  className="
+                    text-xs
+                    text-[#76509a]
+                  "
+                >
+                  ✦
+                </span>
+
+                <span
+                  className="
+                    h-px
+                    w-10
+                    bg-[#d9cbe3]
+                  "
+                />
+              </div>
+
+              {/* DESCRIÇÃO */}
+              <p
+                className="
+                  mt-3
+                  line-clamp-5
+                  max-w-[590px]
+                  overflow-hidden
+                  text-[13px]
+                  leading-5
+                  text-[#5d5960]
+                  sm:mt-4
+                  sm:text-[15px]
+                  sm:leading-6
+                "
+              >
+                {procedure.description ||
+                  procedure.short_description ||
+                  "Entre em contato para saber mais sobre este procedimento."}
+              </p>
+
+              {/* DURAÇÃO */}
+              {procedure.duration_minutes && (
+                <div
+                  className="
+                    mt-3
+                    shrink-0
+                    sm:mt-4
+                  "
+                >
+                  <span
+                    className="
+                      inline-flex
+                      items-center
+                      gap-2
+                      rounded-full
+                      bg-[#f3ebf8]
+                      px-4
+                      py-2
+                      text-[12px]
+                      font-medium
+                      text-[#704093]
+                      sm:text-[13px]
+                    "
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="h-4 w-4"
+                      aria-hidden="true"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="8"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                      />
+
+                      <path
+                        d="M12 8V12L14.5 14"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+
+                    Aproximadamente{" "}
+                    {procedure.duration_minutes}{" "}
+                    min
+                  </span>
+                </div>
+              )}
+
+              {/* BOTÃO AGENDAR */}
+              <button
+                type="button"
+                onClick={handleSchedule}
+                className="
+                  mt-auto
+                  flex
+                  min-h-[54px]
+                  w-full
+                  shrink-0
+                  items-center
+                  justify-between
+                  rounded-full
+                  bg-gradient-to-r
+                  from-[#69418a]
+                  via-[#76509a]
+                  to-[#7d4aa0]
+                  px-7
+                  py-4
+                  text-sm
+                  font-semibold
+                  text-white
+                  shadow-[0_14px_30px_rgba(118,80,154,0.30)]
+                  transition
+                  active:scale-[0.98]
+                  sm:w-auto
+                  sm:min-w-[360px]
+                "
+                style={{
+                  touchAction: "manipulation",
+                }}
+              >
+                <span className="flex-1 text-center">
+                  Agendar este procedimento
+                </span>
+
+                <span
+                  className="
+                    ml-4
+                    text-xl
+                    leading-none
+                  "
+                >
+                  →
+                </span>
+              </button>
             </div>
           </div>
         </div>
       )}
     </>
-    
   );
 }
