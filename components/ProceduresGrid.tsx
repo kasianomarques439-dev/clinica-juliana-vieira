@@ -6,6 +6,37 @@ export default function ProceduresGrid({
 }: {
   procedures: Procedure[];
 }) {
+  /*
+   * Divide os procedimentos em grupos de 2.
+   *
+   * Exemplo:
+   *
+   * Coluna 1:
+   * - Botox
+   * - Preenchimento Labial
+   *
+   * Coluna 2:
+   * - Preenchimento Malar
+   * - Mandíbula
+   *
+   * E no celular a pessoa arrasta
+   * essas colunas para os lados.
+   */
+  const mobileGroups: Procedure[][] = [];
+
+  for (
+    let index = 0;
+    index < procedures.length;
+    index += 2
+  ) {
+    mobileGroups.push(
+      procedures.slice(
+        index,
+        index + 2
+      )
+    );
+  }
+
   return (
     <section
       id="procedimentos"
@@ -20,168 +51,258 @@ export default function ProceduresGrid({
         md:py-12
       "
     >
-      <div className="mx-auto w-full max-w-[1450px]">
+      <div
+        className="
+          mx-auto
+          w-full
+          max-w-[1450px]
+        "
+      >
         {/* CABEÇALHO */}
-        <div className="mb-7 px-4 sm:px-6 lg:px-8">
-          <p className="text-xs uppercase tracking-[0.28em] text-white/70">
+        <div
+          className="
+            mb-7
+            px-4
+            sm:px-6
+            lg:px-8
+          "
+        >
+          <p
+            className="
+              text-xs
+              uppercase
+              tracking-[0.28em]
+              text-white/70
+            "
+          >
             Catálogo
           </p>
 
-          <div className="mt-2 flex items-end justify-between gap-4">
+          <div
+            className="
+              mt-2
+              flex
+              items-end
+              justify-between
+              gap-4
+            "
+          >
             <div>
-              <h2 className="font-display text-3xl font-semibold text-white md:text-4xl">
+              <h2
+                className="
+                  font-display
+                  text-3xl
+                  font-semibold
+                  text-white
+                  md:text-4xl
+                "
+              >
                 Procedimentos
               </h2>
 
-              <p className="mt-2 text-sm text-white/80">
+              <p
+                className="
+                  mt-2
+                  text-sm
+                  text-white/80
+                "
+              >
                 Escolha o procedimento que deseja conhecer.
               </p>
             </div>
 
-            {/* INDICAÇÃO MOBILE */}
-            <div
-              className="
-                hidden
-                shrink-0
-                items-center
-                gap-2
-                text-xs
-                font-medium
-                text-white/70
-                min-[380px]:flex
-                sm:hidden
-              "
-            >
-              <span>Arraste</span>
+            {procedures.length > 2 && (
+              <div
+                className="
+                  flex
+                  shrink-0
+                  items-center
+                  gap-1.5
+                  text-[11px]
+                  font-semibold
+                  uppercase
+                  tracking-[0.12em]
+                  text-white/75
+                  sm:hidden
+                "
+              >
+                <span>
+                  Arraste
+                </span>
 
-              <span className="text-lg">
-                →
-              </span>
-            </div>
+                <span
+                  className="
+                    text-xl
+                    leading-none
+                  "
+                >
+                  →
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
         {procedures.length === 0 ? (
-          <p className="px-4 text-white/70 sm:px-6 lg:px-8">
+          <p
+            className="
+              px-4
+              text-white/70
+              sm:px-6
+              lg:px-8
+            "
+          >
             Nenhum procedimento cadastrado no momento.
           </p>
         ) : (
           <>
-            {/* ================================================= */}
-            {/* MOBILE - 2 FILEIRAS COM ARRASTAR PARA A DIREITA */}
-            {/* ================================================= */}
+            {/* ====================================== */}
+            {/* MOBILE                                */}
+            {/* 2 PROCEDIMENTOS POR BLOCO             */}
+            {/* ARRASTA HORIZONTALMENTE               */}
+            {/* ====================================== */}
             <div
               className="
-                grid
-                grid-flow-col
-                grid-rows-2
-                auto-cols-[86vw]
+                flex
+                w-full
+                snap-x
+                snap-mandatory
                 gap-4
                 overflow-x-auto
                 overscroll-x-contain
                 px-4
-                pb-4
-                pr-8
-                snap-x
-                snap-mandatory
-
+                pb-5
                 sm:hidden
-
-                [&::-webkit-scrollbar]:hidden
               "
               style={{
-                scrollbarWidth: "none",
+                scrollbarWidth:
+                  "none",
                 WebkitOverflowScrolling:
                   "touch",
               }}
             >
-              {procedures.map(
-                (procedure) => (
+              {mobileGroups.map(
+                (
+                  group,
+                  groupIndex
+                ) => (
                   <div
-                    key={procedure.id}
+                    key={
+                      group[0]?.id ??
+                      groupIndex
+                    }
                     className="
-                      w-full
+                      flex
+                      w-[88vw]
+                      max-w-[390px]
+                      flex-none
                       snap-start
+                      flex-col
+                      gap-4
                     "
                   >
-                    <ProcedureCard
-                      procedure={
+                    {group.map(
+                      (
                         procedure
-                      }
-                    />
+                      ) => (
+                        <div
+                          key={
+                            procedure.id
+                          }
+                          className="
+                            w-full
+                            flex-none
+                          "
+                        >
+                          <ProcedureCard
+                            procedure={
+                              procedure
+                            }
+                          />
+                        </div>
+                      )
+                    )}
                   </div>
                 )
               )}
+
+              {/* ESPAÇO FINAL */}
+              <div
+                aria-hidden="true"
+                className="
+                  w-1
+                  shrink-0
+                "
+              />
             </div>
 
-            {/* ================================================= */}
-            {/* TABLET / DESKTOP - GRADE NORMAL */}
-            {/* ================================================= */}
+            {/* INDICADOR MOBILE */}
+            {mobileGroups.length >
+              1 && (
+              <div
+                className="
+                  mt-1
+                  flex
+                  items-center
+                  justify-center
+                  gap-2
+                  sm:hidden
+                "
+              >
+                {mobileGroups
+                  .slice(0, 5)
+                  .map(
+                    (
+                      _group,
+                      index
+                    ) => (
+                      <span
+                        key={index}
+                        className={`
+                          block
+                          h-1.5
+                          rounded-full
+                          ${
+                            index === 0
+                              ? "w-8 bg-white/85"
+                              : "w-3 bg-white/30"
+                          }
+                        `}
+                      />
+                    )
+                  )}
+              </div>
+            )}
+
+            {/* ====================================== */}
+            {/* TABLET E DESKTOP                      */}
+            {/* GRADE NORMAL                          */}
+            {/* ====================================== */}
             <div
               className="
                 hidden
                 px-6
-
                 sm:grid
                 sm:grid-cols-2
                 sm:gap-4
-
-                xl:grid-cols-4
-
                 lg:px-8
+                xl:grid-cols-4
               "
             >
               {procedures.map(
                 (procedure) => (
                   <ProcedureCard
-                    key={procedure.id}
-                    procedure={procedure}
+                    key={
+                      procedure.id
+                    }
+                    procedure={
+                      procedure
+                    }
                   />
                 )
               )}
             </div>
           </>
-        )}
-
-        {/* BARRINHA VISUAL MOBILE */}
-        {procedures.length > 2 && (
-          <div
-            className="
-              mt-5
-              flex
-              items-center
-              justify-center
-              gap-2
-              sm:hidden
-            "
-          >
-            <div
-              className="
-                h-1
-                w-12
-                rounded-full
-                bg-white/80
-              "
-            />
-
-            <div
-              className="
-                h-1
-                w-5
-                rounded-full
-                bg-white/25
-              "
-            />
-
-            <div
-              className="
-                h-1
-                w-5
-                rounded-full
-                bg-white/25
-              "
-            />
-          </div>
         )}
       </div>
     </section>
