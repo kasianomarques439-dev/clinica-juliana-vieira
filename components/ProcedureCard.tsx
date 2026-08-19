@@ -13,11 +13,28 @@ export default function ProcedureCard({
   const [open, setOpen] =
     useState(false);
 
+  /*
+   * TRAVA A TELA DE FUNDO
+   *
+   * Quando o modal abre:
+   * - a página atrás para de rolar
+   * - o foco visual fica somente no procedimento
+   */
   useEffect(() => {
     if (!open) {
       return;
     }
 
+    /*
+     * TRAVA REAL DO FUNDO
+     *
+     * Usar somente overflow:hidden nem sempre trava
+     * completamente o Safari/iPhone.
+     *
+     * Aqui guardamos a posição atual da página,
+     * fixamos o body e restauramos exatamente o mesmo
+     * ponto quando o modal fecha.
+     */
     const scrollY =
       window.scrollY;
 
@@ -38,28 +55,13 @@ export default function ProcedureCard({
         body.style.right,
       width:
         body.style.width,
-      height:
-        body.style.height,
       overflow:
         body.style.overflow,
-      touchAction:
-        body.style.touchAction,
     };
 
-    const previousHtmlStyle = {
-      overflow:
-        html.style.overflow,
-      height:
-        html.style.height,
-      touchAction:
-        html.style.touchAction,
-      overscrollBehavior:
-        html.style.overscrollBehavior,
-    };
+    const previousHtmlOverflow =
+      html.style.overflow;
 
-    /*
-     * TRAVA TOTAL DA PÁGINA
-     */
     body.style.position =
       "fixed";
 
@@ -75,55 +77,11 @@ export default function ProcedureCard({
     body.style.width =
       "100%";
 
-    body.style.height =
-      "100%";
-
     body.style.overflow =
       "hidden";
 
-    body.style.touchAction =
-      "none";
-
     html.style.overflow =
       "hidden";
-
-    html.style.height =
-      "100%";
-
-    html.style.touchAction =
-      "none";
-
-    html.style.overscrollBehavior =
-      "none";
-
-    /*
-     * BLOQUEIA O GESTO DO DEDO
-     * E A RODA DO MOUSE.
-     *
-     * Isso impede o "puxar para cima/baixo"
-     * do Safari/Chrome enquanto o modal está aberto.
-     */
-    const preventScroll = (
-      event: Event
-    ) => {
-      event.preventDefault();
-    };
-
-    document.addEventListener(
-      "touchmove",
-      preventScroll,
-      {
-        passive: false,
-      }
-    );
-
-    document.addEventListener(
-      "wheel",
-      preventScroll,
-      {
-        passive: false,
-      }
-    );
 
     function handleEscape(
       event: KeyboardEvent
@@ -141,21 +99,6 @@ export default function ProcedureCard({
     );
 
     return () => {
-      document.removeEventListener(
-        "touchmove",
-        preventScroll
-      );
-
-      document.removeEventListener(
-        "wheel",
-        preventScroll
-      );
-
-      window.removeEventListener(
-        "keydown",
-        handleEscape
-      );
-
       body.style.position =
         previousBodyStyle.position;
 
@@ -171,26 +114,16 @@ export default function ProcedureCard({
       body.style.width =
         previousBodyStyle.width;
 
-      body.style.height =
-        previousBodyStyle.height;
-
       body.style.overflow =
         previousBodyStyle.overflow;
 
-      body.style.touchAction =
-        previousBodyStyle.touchAction;
-
       html.style.overflow =
-        previousHtmlStyle.overflow;
+        previousHtmlOverflow;
 
-      html.style.height =
-        previousHtmlStyle.height;
-
-      html.style.touchAction =
-        previousHtmlStyle.touchAction;
-
-      html.style.overscrollBehavior =
-        previousHtmlStyle.overscrollBehavior;
+      window.removeEventListener(
+        "keydown",
+        handleEscape
+      );
 
       window.scrollTo(
         0,
@@ -202,6 +135,10 @@ export default function ProcedureCard({
   function handleSchedule() {
     setOpen(false);
 
+    /*
+     * ENVIA PARA O BOOKINGFORM
+     * O PROCEDIMENTO QUE FOI CLICADO
+     */
     window.dispatchEvent(
       new CustomEvent(
         "select-procedure-for-booking",
@@ -211,16 +148,18 @@ export default function ProcedureCard({
       )
     );
 
+    /*
+     * ESPERA O MODAL FECHAR
+     * E VAI PARA O AGENDAMENTO
+     */
     window.setTimeout(() => {
       document
-        .getElementById(
-          "agendar"
-        )
+        .getElementById("agendar")
         ?.scrollIntoView({
           behavior: "smooth",
           block: "start",
         });
-    }, 180);
+    }, 150);
   }
 
   return (
@@ -247,12 +186,16 @@ export default function ProcedureCard({
           shadow-[0_8px_22px_rgba(52,20,73,0.16)]
           transition
           duration-300
+
           hover:-translate-y-1
           hover:shadow-[0_12px_28px_rgba(52,20,73,0.25)]
+
           sm:h-[170px]
+
           xl:h-[155px]
         "
       >
+        {/* IMAGEM DO CARD */}
         <div
           className="
             relative
@@ -267,9 +210,7 @@ export default function ProcedureCard({
               src={
                 procedure.image_url
               }
-              alt={
-                procedure.name
-              }
+              alt={procedure.name}
               fill
               sizes="
                 (max-width: 640px) 46vw,
@@ -281,6 +222,7 @@ export default function ProcedureCard({
                 object-center
                 transition-transform
                 duration-500
+
                 group-hover:scale-105
               "
             />
@@ -303,6 +245,7 @@ export default function ProcedureCard({
           )}
         </div>
 
+        {/* TEXTO DO CARD */}
         <div
           className="
             flex
@@ -321,7 +264,9 @@ export default function ProcedureCard({
               font-semibold
               leading-[1.15]
               text-[#704093]
+
               sm:text-[19px]
+
               xl:text-[18px]
             "
           >
@@ -357,7 +302,7 @@ export default function ProcedureCard({
       </button>
 
       {/* ================================================= */}
-      {/* MODAL TOTALMENTE FIXO                             */}
+      {/* MODAL DO PROCEDIMENTO                             */}
       {/* ================================================= */}
 
       {open && (
@@ -370,45 +315,53 @@ export default function ProcedureCard({
           className="
             fixed
             inset-0
-            z-[99999]
+            z-[9999]
             flex
-            h-[100dvh]
-            w-screen
             items-center
             justify-center
-            overflow-hidden
-            overscroll-none
             bg-black/65
             p-3
-            backdrop-blur-[14px]
+            backdrop-blur-[10px]
+            overscroll-none
             touch-none
+
             sm:p-6
           "
+          onMouseDown={() =>
+            setOpen(false)
+          }
         >
+          {/* ============================================= */}
+          {/* CONTAINER DO MODAL                            */}
+          {/* ============================================= */}
+
           <div
             className="
               relative
               flex
-              h-[91dvh]
-              w-[94vw]
+              h-[90dvh]
+              max-h-[760px]
+              w-[96vw]
               max-w-[720px]
               flex-col
               overflow-hidden
-              rounded-[28px]
+              rounded-[26px]
               bg-white
-              shadow-[0_30px_100px_rgba(0,0,0,0.50)]
-              sm:h-[90vh]
-              sm:max-h-[820px]
-              sm:rounded-[32px]
+              shadow-[0_30px_100px_rgba(0,0,0,0.45)]
+
+              sm:max-h-[92vh]
+              sm:rounded-[30px]
             "
-            style={{
-              touchAction:
-                "none",
-              overscrollBehavior:
-                "none",
-            }}
+            onMouseDown={(
+              event
+            ) =>
+              event.stopPropagation()
+            }
           >
-            {/* ÚNICA FORMA DE FECHAR VISUALMENTE */}
+            {/* ============================================= */}
+            {/* BOTÃO FECHAR                                  */}
+            {/* ============================================= */}
+
             <button
               type="button"
               onClick={() =>
@@ -419,265 +372,293 @@ export default function ProcedureCard({
                 absolute
                 right-3
                 top-3
-                z-50
+                z-30
                 flex
-                h-12
-                w-12
+                h-11
+                w-11
                 items-center
                 justify-center
                 rounded-full
                 border
-                border-white/80
-                bg-white
-                text-[30px]
+                border-white/70
+                bg-white/95
+                text-[26px]
                 font-light
                 leading-none
                 text-[#704093]
-                shadow-[0_8px_24px_rgba(0,0,0,0.24)]
+                shadow-[0_8px_24px_rgba(0,0,0,0.20)]
+                backdrop-blur-md
                 transition
-                active:scale-95
+
+                hover:scale-105
+                hover:bg-white
+
                 sm:right-4
                 sm:top-4
               "
-              style={{
-                touchAction:
-                  "manipulation",
-              }}
             >
               ×
             </button>
 
-            {/* FOTO FIXA */}
+            {/* ============================================= */}
+            {/* ÁREA QUE PODE ROLAR                           */}
+            {/* ============================================= */}
+
             <div
               className="
-                relative
-                h-[44%]
-                min-h-0
-                w-full
-                flex-none
-                overflow-hidden
-                bg-[#eee4f4]
-                sm:h-[48%]
+                h-full
+                overflow-y-auto
+                overscroll-contain
+                touch-pan-y
+
+                [&::-webkit-scrollbar]:w-1.5
+
+                [&::-webkit-scrollbar-thumb]:rounded-full
+                [&::-webkit-scrollbar-thumb]:bg-[#76509a]/25
+
+                [&::-webkit-scrollbar-track]:bg-transparent
               "
             >
-              {procedure.image_url ? (
-                <Image
-                  src={
-                    procedure.image_url
-                  }
-                  alt={
-                    procedure.name
-                  }
-                  fill
-                  sizes="
-                    (max-width: 640px) 94vw,
-                    720px
-                  "
-                  className="
-                    object-cover
-                    object-center
-                  "
-                />
-              ) : (
-                <div
-                  className="
-                    flex
-                    h-full
-                    items-center
-                    justify-center
-                    text-sm
-                    text-[#76509a]/50
-                  "
-                >
-                  Sem imagem
-                </div>
-              )}
-
-              <div
-                aria-hidden="true"
-                className="
-                  pointer-events-none
-                  absolute
-                  inset-x-0
-                  bottom-0
-                  h-16
-                  bg-gradient-to-t
-                  from-black/20
-                  to-transparent
-                "
-              />
-            </div>
-
-            {/* CONTEÚDO FIXO - SEM ROLAGEM */}
-            <div
-              className="
-                flex
-                min-h-0
-                flex-1
-                flex-col
-                items-center
-                overflow-hidden
-                px-5
-                pb-5
-                pt-5
-                text-center
-                sm:px-8
-                sm:pb-7
-                sm:pt-6
-              "
-            >
-              <p
-                className="
-                  shrink-0
-                  text-[10px]
-                  font-semibold
-                  uppercase
-                  tracking-[0.28em]
-                  text-[#76509a]/70
-                  sm:text-xs
-                "
-              >
-                Procedimento
-              </p>
-
-              <h2
-                className="
-                  mt-2
-                  line-clamp-2
-                  shrink-0
-                  font-display
-                  text-[26px]
-                  font-semibold
-                  leading-[1.08]
-                  text-[#704093]
-                  sm:text-[38px]
-                "
-              >
-                {procedure.name}
-              </h2>
+              {/* =========================================== */}
+              {/* IMAGEM GRANDE                              */}
+              {/* =========================================== */}
 
               <div
                 className="
-                  mt-3
-                  h-px
-                  w-14
-                  shrink-0
-                  bg-[#76509a]/25
-                "
-              />
-
-              <p
-                className="
-                  mt-3
-                  line-clamp-4
-                  max-w-[580px]
+                  relative
+                  h-[42dvh]
+                  min-h-[280px]
+                  max-h-[420px]
+                  w-full
                   overflow-hidden
-                  text-[13px]
-                  leading-5
-                  text-[#5e5b5e]
-                  sm:mt-4
-                  sm:line-clamp-5
-                  sm:text-[15px]
-                  sm:leading-6
+                  bg-[#eee4f4]
+
+                  sm:h-[420px]
                 "
               >
-                {procedure.description ||
-                  procedure.short_description ||
-                  "Entre em contato para saber mais sobre este procedimento."}
-              </p>
-
-              {procedure.duration_minutes && (
-                <div
-                  className="
-                    mt-3
-                    shrink-0
-                    sm:mt-4
-                  "
-                >
-                  <span
+                {procedure.image_url ? (
+                  <Image
+                    src={
+                      procedure.image_url
+                    }
+                    alt={
+                      procedure.name
+                    }
+                    fill
+                    priority={false}
+                    sizes="
+                      (max-width: 640px) 100vw,
+                      680px
+                    "
                     className="
-                      inline-flex
+                      object-cover
+                      object-center
+                    "
+                  />
+                ) : (
+                  <div
+                    className="
+                      flex
+                      h-full
                       items-center
-                      gap-2
-                      rounded-full
-                      bg-[#f5eef9]
-                      px-4
-                      py-2
-                      text-[12px]
-                      font-medium
-                      text-[#704093]
-                      sm:text-[13px]
+                      justify-center
+                      bg-[#eee4f4]
+                      text-sm
+                      text-[#76509a]/50
                     "
                   >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="h-4 w-4"
-                      aria-hidden="true"
-                    >
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="8"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                      />
+                    Sem imagem
+                  </div>
+                )}
 
-                      <path
-                        d="M12 8V12L14.5 14"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
+                {/* SOMBRA SUAVE NA BASE DA FOTO */}
+                <div
+                  aria-hidden="true"
+                  className="
+                    pointer-events-none
+                    absolute
+                    inset-x-0
+                    bottom-0
+                    h-20
+                    bg-gradient-to-t
+                    from-black/20
+                    to-transparent
+                  "
+                />
+              </div>
 
-                    Aproximadamente{" "}
-                    {
-                      procedure.duration_minutes
-                    }{" "}
-                    min
-                  </span>
-                </div>
-              )}
+              {/* =========================================== */}
+              {/* CONTEÚDO                                   */}
+              {/* =========================================== */}
 
-              <button
-                type="button"
-                onClick={
-                  handleSchedule
-                }
+              <div
                 className="
-                  mt-auto
-                  flex
-                  min-h-[50px]
-                  w-full
-                  shrink-0
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-[#76509a]
-                  px-6
-                  py-3.5
-                  text-sm
-                  font-semibold
-                  text-white
-                  shadow-[0_12px_28px_rgba(118,80,154,0.28)]
-                  transition
-                  active:scale-[0.98]
-                  sm:w-auto
-                  sm:min-w-[320px]
+                  px-5
+                  pb-6
+                  pt-6
+                  text-center
+
+                  sm:px-8
+                  sm:pb-8
+                  sm:pt-7
                 "
-                style={{
-                  touchAction:
-                    "manipulation",
-                }}
               >
-                Agendar este procedimento
-              </button>
+                <p
+                  className="
+                    text-[11px]
+                    font-semibold
+                    uppercase
+                    tracking-[0.28em]
+                    text-[#76509a]/70
+
+                    sm:text-xs
+                  "
+                >
+                  Procedimento
+                </p>
+
+                <h2
+                  className="
+                    mx-auto
+                    mt-3
+                    max-w-[560px]
+                    font-display
+                    text-[29px]
+                    font-semibold
+                    leading-[1.08]
+                    text-[#704093]
+
+                    sm:text-[38px]
+                  "
+                >
+                  {procedure.name}
+                </h2>
+
+                <div
+                  className="
+                    mx-auto
+                    mt-4
+                    h-px
+                    w-14
+                    bg-[#76509a]/25
+                  "
+                />
+
+                <p
+                  className="
+                    mx-auto
+                    mt-5
+                    max-w-[560px]
+                    text-[14px]
+                    leading-7
+                    text-[#5e5b5e]
+
+                    sm:text-[15px]
+                  "
+                >
+                  {procedure.description ||
+                    procedure.short_description ||
+                    "Entre em contato para saber mais sobre este procedimento."}
+                </p>
+
+                {/* DURAÇÃO */}
+                {procedure.duration_minutes && (
+                  <div
+                    className="
+                      mt-5
+                      flex
+                      justify-center
+                    "
+                  >
+                    <span
+                      className="
+                        inline-flex
+                        items-center
+                        gap-2
+                        rounded-full
+                        bg-[#f5eef9]
+                        px-4
+                        py-2
+                        text-[13px]
+                        font-medium
+                        text-[#704093]
+                      "
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        className="h-4 w-4"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="8"
+                          stroke="currentColor"
+                          strokeWidth="1.7"
+                        />
+
+                        <path
+                          d="M12 8V12L14.5 14"
+                          stroke="currentColor"
+                          strokeWidth="1.7"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+
+                      Aproximadamente{" "}
+                      {
+                        procedure.duration_minutes
+                      }{" "}
+                      min
+                    </span>
+                  </div>
+                )}
+
+                {/* ========================================= */}
+                {/* BOTÃO AGENDAR                            */}
+                {/* ========================================= */}
+
+                <button
+                  type="button"
+                  onClick={
+                    handleSchedule
+                  }
+                  className="
+                    mt-7
+                    inline-flex
+                    min-h-[52px]
+                    w-full
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-[#76509a]
+                    px-8
+                    py-4
+                    text-sm
+                    font-semibold
+                    text-white
+                    shadow-[0_12px_28px_rgba(118,80,154,0.28)]
+                    transition-all
+                    duration-300
+
+                    hover:-translate-y-0.5
+                    hover:bg-[#56366f]
+                    hover:shadow-[0_16px_34px_rgba(118,80,154,0.32)]
+
+                    sm:w-auto
+                    sm:min-w-[300px]
+                  "
+                >
+                  Agendar este procedimento
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
     </>
+    
   );
 }

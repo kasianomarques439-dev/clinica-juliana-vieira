@@ -229,7 +229,7 @@ export default function BookingForm() {
   }, []);
 
   /*
-   * CARREGA OS HORÁRIOS GLOBAIS LIVRES DA CLÍNICA.
+   * CARREGA TODOS OS HORÁRIOS GLOBAIS DA CLÍNICA.
    *
    * Esta função é reutilizada:
    * - quando o procedimento muda;
@@ -267,7 +267,6 @@ export default function BookingForm() {
       const result = await supabase
         .from("available_slots")
         .select("*")
-        .eq("status", "open")
         .gte("slot_date", today)
         .lte("slot_date", saturday)
         .order("slot_date", {
@@ -304,7 +303,9 @@ export default function BookingForm() {
             newSlots.some(
               (slot) =>
                 slot.id ===
-                selectedSlot.id
+                  selectedSlot.id &&
+                slot.status ===
+                  "open"
             );
 
           if (!stillAvailable) {
@@ -340,7 +341,7 @@ export default function BookingForm() {
    * ATUALIZAÇÃO AUTOMÁTICA ENTRE APARELHOS.
    *
    * A cada 5 segundos faz uma consulta leve somente dos
-   * horários open da semana atual.
+   * horários da semana atual com seus status.
    *
    * Isso evita que um horário reservado no celular continue
    * aparecendo livre no notebook.
@@ -554,10 +555,16 @@ export default function BookingForm() {
           );
 
           setSlots((current) =>
-            current.filter(
+            current.map(
               (slot) =>
-                slot.id !==
+                slot.id ===
                 selectedSlot.id
+                  ? {
+                      ...slot,
+                      status:
+                        "booked",
+                    }
+                  : slot
             )
           );
 
@@ -1120,39 +1127,85 @@ export default function BookingForm() {
                               selectedDate
                             ) ?? []
                           ).map(
-                            (slot) => (
-                              <button
-                                key={slot.id}
-                                type="button"
-                                onClick={() =>
-                                  selectSlot(
-                                    slot
-                                  )
-                                }
-                                className="
-                                  rounded-[15px]
-                                  border
-                                  border-[#dcd3e1]
-                                  bg-white
-                                  px-4
-                                  py-3.5
-                                  text-sm
-                                  font-semibold
-                                  text-[#76509a]
-                                  shadow-sm
-                                  transition-all
-                                  duration-300
-                                  hover:-translate-y-1
-                                  hover:border-[#76509a]
-                                  hover:bg-[#76509a]
-                                  hover:text-white
-                                  hover:shadow-[0_10px_22px_rgba(118,80,154,0.18)]
-                                "
-                              >
-                                {slot.slot_time.slice(
-                                  0,
-                                  5
-                                )}
+                            (slot) => {
+                              const isOpen =
+                                slot.status ===
+                                "open";
+
+                              const isBooked =
+                                slot.status ===
+                                "booked";
+
+                              return (
+                                <button
+                                  key={slot.id}
+                                  type="button"
+                                  disabled={
+                                    !isOpen
+                                  }
+                                  onClick={() => {
+                                    if (
+                                      !isOpen
+                                    ) {
+                                      return;
+                                    }
+
+                                    selectSlot(
+                                      slot
+                                    );
+                                  }}
+                                  className={`
+                                    relative
+                                    min-h-[58px]
+                                    rounded-[15px]
+                                    border
+                                    px-3
+                                    py-3
+                                    text-center
+                                    transition-all
+                                    duration-300
+                                    ${
+                                      isOpen
+                                        ? "border-[#dcd3e1] bg-white text-[#76509a] shadow-sm hover:-translate-y-1 hover:border-[#76509a] hover:bg-[#76509a] hover:text-white hover:shadow-[0_10px_22px_rgba(118,80,154,0.18)]"
+                                        : isBooked
+                                          ? "cursor-not-allowed border-[#ded8e2] bg-[#f4f1f5]/70 text-[#9b939e] opacity-65"
+                                          : "cursor-not-allowed border-[#e4e0e4] bg-[#f7f5f6] text-[#b2abb3] opacity-55"
+                                    }
+                                  `}
+                                >
+                                  <span
+                                    className="
+                                      block
+                                      text-sm
+                                      font-semibold
+                                    "
+                                  >
+                                    {slot.slot_time.slice(
+                                      0,
+                                      5
+                                    )}
+                                  </span>
+
+                                  {!isOpen && (
+                                    <span
+                                      className="
+                                        mt-1
+                                        block
+                                        text-[9px]
+                                        font-bold
+                                        uppercase
+                                        tracking-[0.12em]
+                                      "
+                                    >
+                                      {isBooked
+                                        ? "Agendado"
+                                        : "Indisponível"}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            }
+                          )}
                               </button>
                             )
                           )}
