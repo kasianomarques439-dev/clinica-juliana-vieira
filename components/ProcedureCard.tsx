@@ -15,9 +15,8 @@ export default function ProcedureCard({
   const [mounted, setMounted] = useState(false);
 
   /*
-   * GARANTE QUE O PORTAL SÓ SEJA
-   * CRIADO DEPOIS QUE O COMPONENTE
-   * ESTIVER NO NAVEGADOR.
+   * GARANTE QUE O PORTAL SÓ SEJA CRIADO
+   * DEPOIS QUE O COMPONENTE ESTIVER NO NAVEGADOR
    */
   useEffect(() => {
     setMounted(true);
@@ -28,54 +27,41 @@ export default function ProcedureCard({
   }, []);
 
   /*
-   * TRAVA COMPLETAMENTE O FUNDO
+   * TRAVA A ROLAGEM DO SITE
    * ENQUANTO O MODAL ESTIVER ABERTO.
+   *
+   * IMPORTANTE:
+   * NÃO usamos body.position = fixed,
+   * porque isso pode causar problemas
+   * principalmente no Safari/iPhone.
    */
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    const scrollY = window.scrollY;
-
     const body = document.body;
     const html = document.documentElement;
-
-    const previousBodyPosition =
-      body.style.position;
-
-    const previousBodyTop =
-      body.style.top;
-
-    const previousBodyLeft =
-      body.style.left;
-
-    const previousBodyRight =
-      body.style.right;
-
-    const previousBodyWidth =
-      body.style.width;
 
     const previousBodyOverflow =
       body.style.overflow;
 
+    const previousBodyOverscroll =
+      body.style.overscrollBehavior;
+
     const previousHtmlOverflow =
       html.style.overflow;
 
-    const previousOverscroll =
+    const previousHtmlOverscroll =
       html.style.overscrollBehavior;
 
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
     body.style.overflow = "hidden";
+    body.style.overscrollBehavior = "none";
 
     html.style.overflow = "hidden";
     html.style.overscrollBehavior = "none";
 
-    function handleKeyDown(
+    function handleEscape(
       event: KeyboardEvent
     ) {
       if (event.key === "Escape") {
@@ -85,48 +71,32 @@ export default function ProcedureCard({
 
     window.addEventListener(
       "keydown",
-      handleKeyDown
+      handleEscape
     );
 
     return () => {
       window.removeEventListener(
         "keydown",
-        handleKeyDown
+        handleEscape
       );
-
-      body.style.position =
-        previousBodyPosition;
-
-      body.style.top =
-        previousBodyTop;
-
-      body.style.left =
-        previousBodyLeft;
-
-      body.style.right =
-        previousBodyRight;
-
-      body.style.width =
-        previousBodyWidth;
 
       body.style.overflow =
         previousBodyOverflow;
+
+      body.style.overscrollBehavior =
+        previousBodyOverscroll;
 
       html.style.overflow =
         previousHtmlOverflow;
 
       html.style.overscrollBehavior =
-        previousOverscroll;
-
-      window.scrollTo(0, scrollY);
+        previousHtmlOverscroll;
     };
   }, [open]);
 
   /*
-   * FECHA O MODAL,
    * SELECIONA O PROCEDIMENTO
    * NO BOOKINGFORM
-   * E ROLA ATÉ #AGENDAR.
    */
   function handleSchedule() {
     setOpen(false);
@@ -147,21 +117,15 @@ export default function ProcedureCard({
           behavior: "smooth",
           block: "start",
         });
-    }, 180);
+    }, 200);
   }
 
   /*
    * MODAL PREMIUM
    *
-   * IMPORTANTE:
-   * createPortal coloca o modal diretamente
-   * no document.body.
-   *
-   * Assim ele NÃO sofre interferência de:
-   * - carousel
-   * - transform
-   * - overflow
-   * - stacking context
+   * É RENDERIZADO DIRETAMENTE NO BODY.
+   * ASSIM NÃO É CORTADO PELO CARROSSEL,
+   * OVERFLOW, TRANSFORM OU SLIDE.
    */
   const modal =
     mounted && open
@@ -179,29 +143,32 @@ export default function ProcedureCard({
               }
             }}
             className="
-              fixed
-              inset-0
-              z-[999999]
               flex
-              h-[100dvh]
-              w-screen
               items-center
               justify-center
-              overflow-hidden
-
               bg-black/60
-              backdrop-blur-[8px]
+              px-3
+              py-3
+              backdrop-blur-[10px]
 
-              px-[15px]
-              py-[14px]
-
-              sm:px-6
-              sm:py-6
+              sm:px-5
+              sm:py-5
             "
+            style={{
+              position: "fixed",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
+              width: "100vw",
+              height: "100dvh",
+              zIndex: 2147483647,
+              isolation: "isolate",
+            }}
           >
-            {/* ========================================= */}
-            {/* CORPO DO MODAL                           */}
-            {/* ========================================= */}
+            {/* ================================= */}
+            {/* CARD GRANDE DO MODAL             */}
+            {/* ================================= */}
 
             <div
               onMouseDown={(event) => {
@@ -210,74 +177,60 @@ export default function ProcedureCard({
               className="
                 relative
                 flex
-
-                h-[88dvh]
-                max-h-[780px]
-
-                w-[88vw]
+                w-full
                 max-w-[430px]
-
                 flex-col
                 overflow-hidden
-
                 rounded-[30px]
-
                 border
                 border-white/80
-
                 bg-[#fffaf5]
+                shadow-[0_30px_100px_rgba(0,0,0,0.50)]
 
-                shadow-[0_30px_90px_rgba(0,0,0,0.48)]
-
-                sm:h-[90dvh]
-                sm:max-h-[850px]
-                sm:w-[86vw]
-                sm:max-w-[560px]
+                sm:max-w-[520px]
                 sm:rounded-[36px]
+
+                lg:max-w-[550px]
               "
+              style={{
+                height:
+                  "calc(100dvh - 26px)",
+                maxHeight: "820px",
+              }}
             >
-              {/* ========================================= */}
-              {/* BOTÃO X                                  */}
-              {/* ========================================= */}
+              {/* ================================= */}
+              {/* BOTÃO X                         */}
+              {/* ================================= */}
 
               <button
                 type="button"
-                onClick={() =>
-                  setOpen(false)
-                }
+                onClick={() => setOpen(false)}
                 aria-label="Fechar procedimento"
                 className="
                   absolute
-                  right-[14px]
-                  top-[14px]
+                  right-4
+                  top-4
                   z-50
-
                   flex
                   h-[46px]
                   w-[46px]
                   items-center
                   justify-center
-
                   rounded-full
-
                   border
-                  border-white/80
-
+                  border-white/90
                   bg-[#fffaf5]/95
-
-                  text-[28px]
+                  text-[29px]
                   font-light
                   leading-none
-                  text-[#704093]
-
-                  shadow-[0_6px_20px_rgba(0,0,0,0.18)]
-
+                  text-[#684086]
+                  shadow-[0_7px_22px_rgba(0,0,0,0.18)]
                   backdrop-blur-md
-
-                  transition-all
+                  transition
                   duration-200
 
                   hover:scale-105
+                  hover:bg-white
 
                   active:scale-95
 
@@ -285,29 +238,27 @@ export default function ProcedureCard({
                   sm:top-5
                   sm:h-[50px]
                   sm:w-[50px]
-                  sm:text-[30px]
                 "
               >
                 ×
               </button>
 
-              {/* ========================================= */}
-              {/* FOTO                                     */}
-              {/* ========================================= */}
+              {/* ================================= */}
+              {/* FOTO DO PROCEDIMENTO             */}
+              {/* ================================= */}
 
               <div
                 className="
                   relative
-
                   h-[44%]
+                  min-h-[290px]
                   w-full
                   shrink-0
-
                   overflow-hidden
-
                   bg-[#eee4f4]
 
-                  sm:h-[46%]
+                  sm:h-[45%]
+                  sm:min-h-[320px]
                 "
               >
                 {procedure.image_url ? (
@@ -315,14 +266,12 @@ export default function ProcedureCard({
                     src={
                       procedure.image_url
                     }
-                    alt={
-                      procedure.name
-                    }
+                    alt={procedure.name}
                     fill
                     priority
                     sizes="
-                      (max-width: 640px) 88vw,
-                      560px
+                      (max-width: 640px) 100vw,
+                      550px
                     "
                     className="
                       object-cover
@@ -336,7 +285,7 @@ export default function ProcedureCard({
                       h-full
                       items-center
                       justify-center
-                      px-5
+                      px-4
                       text-center
                       text-sm
                       text-[#76509a]/50
@@ -346,8 +295,7 @@ export default function ProcedureCard({
                   </div>
                 )}
 
-                {/* SOMBRA SUAVE NA BASE DA FOTO */}
-
+                {/* SOMBRA LEVE NA FOTO */}
                 <div
                   aria-hidden="true"
                   className="
@@ -355,57 +303,87 @@ export default function ProcedureCard({
                     absolute
                     inset-x-0
                     bottom-0
-                    h-[80px]
-
+                    h-28
                     bg-gradient-to-t
                     from-black/15
-                    via-black/[0.04]
+                    via-black/5
                     to-transparent
                   "
                 />
+
+                {/* ================================= */}
+                {/* CURVA BRANCA                     */}
+                {/* ================================= */}
+
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 1000 130"
+                  preserveAspectRatio="none"
+                  className="
+                    pointer-events-none
+                    absolute
+                    bottom-[-1px]
+                    left-0
+                    z-10
+                    h-[76px]
+                    w-full
+
+                    sm:h-[88px]
+                  "
+                >
+                  <path
+                    d="
+                      M 0 0
+                      C 240 70,
+                        760 70,
+                        1000 0
+                      L 1000 130
+                      L 0 130
+                      Z
+                    "
+                    fill="#fffaf5"
+                  />
+
+                  <path
+                    d="
+                      M 0 0
+                      C 240 70,
+                        760 70,
+                        1000 0
+                    "
+                    fill="none"
+                    stroke="#cdb9dc"
+                    strokeWidth="4"
+                  />
+                </svg>
               </div>
 
-              {/* ========================================= */}
-              {/* ÁREA BRANCA CURVA                        */}
-              {/* ========================================= */}
+              {/* ================================= */}
+              {/* CONTEÚDO                         */}
+              {/* ================================= */}
 
               <div
                 className="
                   relative
-
-                  -mt-[31px]
-
                   flex
                   min-h-0
                   flex-1
                   flex-col
-
                   items-center
-
                   bg-[#fffaf5]
-
-                  px-[22px]
-                  pb-[19px]
-                  pt-[48px]
-
+                  px-5
+                  pb-5
+                  pt-[43px]
                   text-center
 
-                  sm:-mt-[38px]
-                  sm:px-10
+                  sm:px-8
                   sm:pb-7
-                  sm:pt-[58px]
+                  sm:pt-[50px]
                 "
-                style={{
-                  borderRadius:
-                    "50% 50% 0 0 / 34px 34px 0 0",
-
-                  borderTop:
-                    "2px solid #d8c4e3",
-                }}
               >
-                {/* ========================================= */}
-                {/* LOTUS                                    */}
-                {/* ========================================= */}
+                {/* ================================= */}
+                {/* LOTUS                           */}
+                {/* ================================= */}
 
                 <div
                   className="
@@ -413,39 +391,30 @@ export default function ProcedureCard({
                     left-1/2
                     top-0
                     z-20
-
                     flex
-
-                    h-[61px]
-                    w-[61px]
-
+                    h-[62px]
+                    w-[62px]
                     -translate-x-1/2
                     -translate-y-1/2
-
                     items-center
                     justify-center
-
                     rounded-full
-
                     border-2
-                    border-[#d2bfdc]
-
+                    border-[#d2bfdd]
                     bg-[#fffaf5]
-
                     text-[#76509a]
+                    shadow-[0_5px_18px_rgba(118,80,154,0.12)]
 
-                    shadow-[0_5px_16px_rgba(84,47,108,0.10)]
-
-                    sm:h-[70px]
-                    sm:w-[70px]
+                    sm:h-[68px]
+                    sm:w-[68px]
                   "
                 >
                   <svg
                     viewBox="0 0 64 64"
                     fill="none"
                     className="
-                      h-[34px]
-                      w-[34px]
+                      h-[35px]
+                      w-[35px]
 
                       sm:h-[39px]
                       sm:w-[39px]
@@ -453,66 +422,42 @@ export default function ProcedureCard({
                     aria-hidden="true"
                   >
                     <path
-                      d="
-                        M32 10
-                        C36.5 17.5 37.5 24 32 31.5
-                        C26.5 24 27.5 17.5 32 10Z
-                      "
+                      d="M32 10C36.5 17.5 37.5 24 32 31.5C26.5 24 27.5 17.5 32 10Z"
                       stroke="currentColor"
                       strokeWidth="1.8"
                       strokeLinejoin="round"
                     />
 
                     <path
-                      d="
-                        M17 17.5
-                        C24.5 19.5 29.5 24 32 31.5
-                        C23.5 31.5 18.5 27 17 17.5Z
-                      "
+                      d="M17 17.5C24.5 19.5 29.5 24 32 31.5C23.5 31.5 18.5 27 17 17.5Z"
                       stroke="currentColor"
                       strokeWidth="1.8"
                       strokeLinejoin="round"
                     />
 
                     <path
-                      d="
-                        M47 17.5
-                        C39.5 19.5 34.5 24 32 31.5
-                        C40.5 31.5 45.5 27 47 17.5Z
-                      "
+                      d="M47 17.5C39.5 19.5 34.5 24 32 31.5C40.5 31.5 45.5 27 47 17.5Z"
                       stroke="currentColor"
                       strokeWidth="1.8"
                       strokeLinejoin="round"
                     />
 
                     <path
-                      d="
-                        M11 31
-                        C20 31 26 34.5 32 40.5
-                        C21.5 43.5 14 40.5 11 31Z
-                      "
+                      d="M11 31C20 31 26 34.5 32 40.5C21.5 43.5 14 40.5 11 31Z"
                       stroke="currentColor"
                       strokeWidth="1.8"
                       strokeLinejoin="round"
                     />
 
                     <path
-                      d="
-                        M53 31
-                        C44 31 38 34.5 32 40.5
-                        C42.5 43.5 50 40.5 53 31Z
-                      "
+                      d="M53 31C44 31 38 34.5 32 40.5C42.5 43.5 50 40.5 53 31Z"
                       stroke="currentColor"
                       strokeWidth="1.8"
                       strokeLinejoin="round"
                     />
 
                     <path
-                      d="
-                        M19 45
-                        C24 46.5 28.5 46.5 32 43
-                        C35.5 46.5 40 46.5 45 45
-                      "
+                      d="M19 45C24 46.5 28.5 46.5 32 43C35.5 46.5 40 46.5 45 45"
                       stroke="currentColor"
                       strokeWidth="1.8"
                       strokeLinecap="round"
@@ -520,49 +465,40 @@ export default function ProcedureCard({
                   </svg>
                 </div>
 
-                {/* ========================================= */}
-                {/* TÍTULO                                   */}
-                {/* ========================================= */}
+                {/* ================================= */}
+                {/* TÍTULO                          */}
+                {/* ================================= */}
 
                 <h2
                   className="
-                    max-w-[350px]
-
+                    max-w-[380px]
                     shrink-0
-
                     font-display
-
-                    text-[29px]
+                    text-[30px]
                     font-semibold
-
-                    leading-[1.03]
-
+                    leading-[1.02]
                     tracking-[-0.02em]
+                    text-[#633580]
 
-                    text-[#704093]
-
-                    sm:max-w-[470px]
-                    sm:text-[40px]
-                    sm:leading-[1.02]
+                    sm:max-w-[450px]
+                    sm:text-[39px]
                   "
                 >
                   {procedure.name}
                 </h2>
 
-                {/* ========================================= */}
-                {/* ORNAMENTO                                */}
-                {/* ========================================= */}
+                {/* ================================= */}
+                {/* ORNAMENTO                       */}
+                {/* ================================= */}
 
                 <div
                   className="
-                    mt-[13px]
-
+                    mt-3
                     flex
                     shrink-0
                     items-center
                     justify-center
-
-                    gap-[9px]
+                    gap-2.5
 
                     sm:mt-4
                   "
@@ -570,17 +506,14 @@ export default function ProcedureCard({
                   <span
                     className="
                       h-px
-                      w-[39px]
-
-                      bg-gradient-to-r
-                      from-transparent
-                      to-[#d0bddc]
+                      w-10
+                      bg-[#d9cbe3]
                     "
                   />
 
                   <span
                     className="
-                      text-[11px]
+                      text-[12px]
                       text-[#76509a]
                     "
                   >
@@ -590,33 +523,27 @@ export default function ProcedureCard({
                   <span
                     className="
                       h-px
-                      w-[39px]
-
-                      bg-gradient-to-l
-                      from-transparent
-                      to-[#d0bddc]
+                      w-10
+                      bg-[#d9cbe3]
                     "
                   />
                 </div>
 
-                {/* ========================================= */}
-                {/* DESCRIÇÃO                                */}
-                {/* ========================================= */}
+                {/* ================================= */}
+                {/* DESCRIÇÃO                       */}
+                {/* ================================= */}
 
                 <p
                   className="
-                    mt-[13px]
-
-                    max-w-[355px]
-
+                    mt-3
+                    max-w-[380px]
+                    overflow-hidden
                     text-[13px]
-
                     leading-[1.55]
-
-                    text-[#57535a]
+                    text-[#575359]
 
                     sm:mt-4
-                    sm:max-w-[475px]
+                    sm:max-w-[450px]
                     sm:text-[15px]
                     sm:leading-[1.6]
                   "
@@ -626,14 +553,14 @@ export default function ProcedureCard({
                     "Entre em contato para saber mais sobre este procedimento."}
                 </p>
 
-                {/* ========================================= */}
-                {/* DURAÇÃO                                  */}
-                {/* ========================================= */}
+                {/* ================================= */}
+                {/* DURAÇÃO                         */}
+                {/* ================================= */}
 
                 {procedure.duration_minutes && (
                   <div
                     className="
-                      mt-[14px]
+                      mt-4
                       shrink-0
 
                       sm:mt-5
@@ -642,35 +569,25 @@ export default function ProcedureCard({
                     <span
                       className="
                         inline-flex
-
                         items-center
-
                         gap-2
-
                         rounded-full
-
-                        bg-[#f2e8f7]
-
-                        px-[17px]
-                        py-[9px]
-
+                        bg-[#f2e7f6]
+                        px-4
+                        py-2
                         text-[12px]
                         font-medium
-
                         text-[#704093]
 
                         sm:px-5
-                        sm:py-[10px]
+                        sm:py-2.5
                         sm:text-[13px]
                       "
                     >
                       <svg
                         viewBox="0 0 24 24"
                         fill="none"
-                        className="
-                          h-[17px]
-                          w-[17px]
-                        "
+                        className="h-4 w-4"
                         aria-hidden="true"
                       >
                         <circle
@@ -699,67 +616,43 @@ export default function ProcedureCard({
                   </div>
                 )}
 
-                {/* ========================================= */}
-                {/* BOTÃO AGENDAR                           */}
-                {/* ========================================= */}
+                {/* ================================= */}
+                {/* BOTÃO AGENDAR                   */}
+                {/* ================================= */}
 
                 <button
                   type="button"
-                  onClick={
-                    handleSchedule
-                  }
+                  onClick={handleSchedule}
                   className="
                     mt-auto
-
                     flex
-
-                    min-h-[55px]
+                    min-h-[56px]
                     w-full
-
                     shrink-0
-
                     items-center
                     justify-center
-
                     rounded-full
-
-                    bg-gradient-to-r
-
-                    from-[#704092]
-                    via-[#76509a]
-                    to-[#704092]
-
+                    bg-[#704093]
                     px-5
-                    py-[15px]
-
-                    text-[13px]
+                    py-4
+                    text-[14px]
                     font-semibold
-
                     text-white
-
-                    shadow-[0_13px_29px_rgba(88,51,112,0.30)]
-
+                    shadow-[0_15px_32px_rgba(86,48,112,0.32)]
                     transition-all
                     duration-300
 
-                    hover:-translate-y-[1px]
-
-                    hover:shadow-[0_16px_34px_rgba(88,51,112,0.35)]
+                    hover:-translate-y-0.5
+                    hover:bg-[#5d347b]
 
                     active:scale-[0.98]
 
                     sm:min-h-[60px]
-                    sm:max-w-[470px]
-                    sm:px-8
-                    sm:text-[16px]
+                    sm:max-w-[420px]
+                    sm:text-[15px]
                   "
                 >
-                  <span
-                    className="
-                      flex-1
-                      text-center
-                    "
-                  >
+                  <span className="flex-1 text-center">
                     Agendar este procedimento
                   </span>
 
@@ -770,8 +663,6 @@ export default function ProcedureCard({
                       text-[22px]
                       font-light
                       leading-none
-
-                      sm:text-[25px]
                     "
                   >
                     →
@@ -787,47 +678,35 @@ export default function ProcedureCard({
   return (
     <>
       {/* ========================================= */}
-      {/* CARD NORMAL DO CATÁLOGO                 */}
+      {/* CARD NORMAL DO CATÁLOGO                  */}
+      {/* NÃO ALTEREI O TAMANHO DO CARD NORMAL     */}
       {/* ========================================= */}
 
       <button
         type="button"
-        onClick={() =>
-          setOpen(true)
-        }
+        onClick={() => setOpen(true)}
         className="
           group
-
           grid
-
           h-[155px]
           w-full
-
           grid-cols-[46%_54%]
-
           overflow-hidden
-
           rounded-[12px]
-
           bg-white
-
           text-left
-
           shadow-[0_8px_22px_rgba(52,20,73,0.16)]
-
           transition
           duration-300
 
           hover:-translate-y-1
-
           hover:shadow-[0_12px_28px_rgba(52,20,73,0.25)]
 
           sm:h-[170px]
-
           xl:h-[155px]
         "
       >
-        {/* IMAGEM DO CARD */}
+        {/* FOTO DO CARD */}
 
         <div
           className="
@@ -840,12 +719,8 @@ export default function ProcedureCard({
         >
           {procedure.image_url ? (
             <Image
-              src={
-                procedure.image_url
-              }
-              alt={
-                procedure.name
-              }
+              src={procedure.image_url}
+              alt={procedure.name}
               fill
               sizes="
                 (max-width: 640px) 46vw,
@@ -855,7 +730,6 @@ export default function ProcedureCard({
               className="
                 object-cover
                 object-center
-
                 transition-transform
                 duration-500
 
@@ -869,12 +743,9 @@ export default function ProcedureCard({
                 h-full
                 items-center
                 justify-center
-
                 px-3
-
                 text-center
                 text-xs
-
                 text-[#76509a]/50
               "
             >
@@ -883,7 +754,7 @@ export default function ProcedureCard({
           )}
         </div>
 
-        {/* TEXTO DO CARD */}
+        {/* CONTEÚDO DO CARD */}
 
         <div
           className="
@@ -891,7 +762,6 @@ export default function ProcedureCard({
             min-w-0
             flex-col
             justify-center
-
             px-4
             py-3
           "
@@ -899,18 +769,13 @@ export default function ProcedureCard({
           <h3
             className="
               line-clamp-2
-
               font-display
-
               text-[18px]
               font-semibold
-
               leading-[1.15]
-
               text-[#704093]
 
               sm:text-[19px]
-
               xl:text-[18px]
             "
           >
@@ -920,13 +785,9 @@ export default function ProcedureCard({
           <p
             className="
               mt-2
-
               line-clamp-3
-
               text-[12px]
-
               leading-[1.45]
-
               text-[#525b68]
             "
           >
@@ -938,12 +799,9 @@ export default function ProcedureCard({
           <span
             className="
               mt-auto
-
               pt-2
-
               text-[12px]
               font-bold
-
               text-[#7a489b]
             "
           >
@@ -951,8 +809,6 @@ export default function ProcedureCard({
           </span>
         </div>
       </button>
-
-      {/* MODAL FORA DO CARROSSEL */}
 
       {modal}
     </>
