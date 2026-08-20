@@ -887,158 +887,58 @@ export default function ProcedureCard({
   return (
     <>
       {/* ========================================= */}
-      {/* CARD NORMAL DO CATÁLOGO                  */}
+      {/* CARD ACESSÍVEL DO CATÁLOGO                */}
       {/* ========================================= */}
 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="
-          group
-
-          grid
-          h-[155px]
-          w-full
-
-          grid-cols-[46%_54%]
-
-          overflow-hidden
-
-          rounded-[12px]
-
-          bg-white
-
-          text-left
-
-          shadow-[0_8px_22px_rgba(52,20,73,0.16)]
-
-          transition
-          duration-300
-
-          hover:-translate-y-1
-          hover:shadow-[0_12px_28px_rgba(52,20,73,0.25)]
-
-          sm:h-[170px]
-          xl:h-[155px]
-        "
+        aria-label={`Ver detalhes de ${procedure.name}`}
+        className="group grid min-h-[220px] w-full grid-cols-[43%_57%] overflow-hidden rounded-[22px] border border-white/75 bg-[#fffaf5] text-left shadow-[0_14px_34px_rgba(52,20,73,0.20)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(52,20,73,0.28)] active:scale-[0.99] sm:min-h-[210px] sm:rounded-[20px] xl:min-h-[205px]"
       >
-        {/* IMAGEM */}
-
-        <div
-          className="
-            relative
-
-            h-full
-            w-full
-
-            overflow-hidden
-
-            bg-[#eee4f4]
-          "
-        >
+        <div className="relative h-full min-h-[220px] w-full overflow-hidden bg-[#eee4f4] sm:min-h-[210px] xl:min-h-[205px]">
           {procedure.image_url ? (
             <Image
               src={procedure.image_url}
               alt={procedure.name}
               fill
-              sizes="
-                (max-width: 640px) 46vw,
-                (max-width: 1280px) 23vw,
-                170px
-              "
-              className="
-                object-cover
-                object-center
-
-                transition-transform
-                duration-500
-
-                group-hover:scale-105
-              "
+              sizes="(max-width: 640px) 43vw, (max-width: 1280px) 25vw, 170px"
+              className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
             />
           ) : (
-            <div
-              className="
-                flex
-                h-full
-                items-center
-                justify-center
-
-                px-3
-
-                text-center
-                text-xs
-
-                text-[#76509a]/50
-              "
-            >
-              Sem imagem
-            </div>
+            <div className="flex h-full items-center justify-center px-3 text-center text-sm font-medium text-[#76509a]/60">Sem imagem</div>
           )}
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/[0.04]" />
         </div>
 
-        {/* TEXTO */}
+        <div className="flex min-w-0 flex-col px-4 py-4 sm:px-5 sm:py-5">
+          <div aria-hidden="true" className="mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-[#efe4f5] text-[18px] text-[#704093]">✦</div>
 
-        <div
-          className="
-            flex
-            min-w-0
-            flex-col
-            justify-center
-
-            px-4
-            py-3
-          "
-        >
-          <h3
-            className="
-              line-clamp-2
-
-              font-display
-
-              text-[18px]
-              font-semibold
-              leading-[1.15]
-
-              text-[#704093]
-
-              sm:text-[19px]
-              xl:text-[18px]
-            "
-          >
+          <h3 className="line-clamp-2 font-display text-[20px] font-semibold leading-[1.08] tracking-[-0.01em] text-[#704093] sm:text-[21px] xl:text-[20px]">
             {procedure.name}
           </h3>
 
-          <p
-            className="
-              mt-2
+          <div aria-hidden="true" className="mt-2 h-px w-12 bg-[#d8bc83]" />
 
-              line-clamp-3
-
-              text-[12px]
-              leading-[1.45]
-
-              text-[#525b68]
-            "
-          >
-            {procedure.short_description ||
-              procedure.description ||
-              "Conheça mais sobre este procedimento."}
+          <p className="mt-2 line-clamp-3 text-[13px] font-medium leading-[1.45] text-[#4f4a52] sm:text-[13px]">
+            {procedure.short_description || procedure.description || "Conheça mais sobre este procedimento."}
           </p>
 
-          <span
-            className="
-              mt-auto
-              pt-2
+          <div className="mt-auto flex flex-col gap-2 pt-3">
+            {procedure.duration_minutes ? (
+              <span className="inline-flex min-h-[34px] w-fit items-center gap-1.5 rounded-full bg-[#f0e6f5] px-3 py-1.5 text-[12px] font-bold text-[#704093]">
+                <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
+                  <path d="M12 8V12L14.5 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {procedure.duration_minutes} min
+              </span>
+            ) : null}
 
-              text-[12px]
-              font-bold
-
-              text-[#7a489b]
-            "
-          >
-            Ver detalhes
-          </span>
+            <span className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-[#704093] px-3 py-2 text-[13px] font-bold text-white shadow-[0_8px_18px_rgba(86,48,112,0.26)] transition group-hover:bg-[#5d347b]">
+              Ver detalhes <span aria-hidden="true" className="text-[18px] font-light leading-none">→</span>
+            </span>
+          </div>
         </div>
       </button>
 

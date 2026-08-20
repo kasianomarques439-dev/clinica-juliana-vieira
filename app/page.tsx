@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import ProceduresGrid from "@/components/ProceduresGrid";
@@ -20,28 +21,17 @@ export default async function HomePage() {
     .order("display_order", { ascending: true });
 
   if (error) {
-    console.error(
-      "Erro ao carregar procedimentos:",
-      error
-    );
+    console.error("Erro ao carregar procedimentos:", error);
   }
 
   return (
     <main>
       <Header />
-
       <Hero />
-
-      <ProceduresGrid
-        procedures={procedures ?? []}
-      />
-
+      <ProceduresGrid procedures={procedures ?? []} />
       <BookingForm />
-
       <InstagramSection />
-
       <Footer />
-
       <WhatsAppButton />
     </main>
   );
