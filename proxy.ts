@@ -1,10 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
+
 import {
   NextResponse,
   type NextRequest,
 } from "next/server";
 
-export async function middleware(
+export async function proxy(
   request: NextRequest
 ) {
   let response = NextResponse.next({
@@ -55,7 +56,7 @@ export async function middleware(
 
   /*
    * ==========================================================
-   * 1. CONFIRMA A SESSÃO DIRETAMENTE COM O SUPABASE
+   * 1. CONFIRMA A SESSÃO COM O SUPABASE
    * ==========================================================
    */
 
@@ -76,18 +77,7 @@ export async function middleware(
 
   /*
    * ==========================================================
-   * 2. DESCOBRE SE O USUÁRIO REALMENTE É ADMIN
-   * ==========================================================
-   *
-   * Estar autenticado não é suficiente.
-   *
-   * Também precisa existir em:
-   *
-   * public.profiles
-   *
-   * com:
-   *
-   * role = "admin"
+   * 2. VERIFICA SE O USUÁRIO É ADMINISTRADOR
    * ==========================================================
    */
 
@@ -142,10 +132,6 @@ export async function middleware(
    * ==========================================================
    * 4. ESTÁ LOGADO, MAS NÃO É ADMIN
    * ==========================================================
-   *
-   * Mesmo que alguém consiga criar uma conta ou obter
-   * uma sessão válida, não poderá entrar no painel.
-   * ==========================================================
    */
 
   if (
@@ -172,7 +158,7 @@ export async function middleware(
 
   /*
    * ==========================================================
-   * 5. ADMIN JÁ LOGADO ABRINDO /admin/login
+   * 5. ADMIN JÁ LOGADO TENTANDO ABRIR /admin/login
    * ==========================================================
    */
 
