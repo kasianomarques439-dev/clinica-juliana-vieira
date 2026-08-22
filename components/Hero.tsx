@@ -1,266 +1,390 @@
-import Image from "next/image";
+"use client";
 
-export default function Hero() {
+import { useState } from "react";
+
+const LINKS = [
+  {
+    label: "Início",
+    href: "#inicio",
+  },
+  {
+    label: "Procedimentos",
+    href: "#procedimentos",
+  },
+  {
+    label: "Agendamento",
+    href: "#agendar",
+  },
+  {
+    label: "Instagram",
+    href: "#instagram",
+  },
+];
+
+export default function Header() {
+  const [open, setOpen] = useState(false);
+
   return (
-    <section className="relative w-full overflow-hidden bg-[#fbf5ec]">
+    <header className="absolute inset-x-0 top-0 z-50 w-full">
       <div
         className="
           mx-auto
-          flex
-          min-h-[760px]
           w-full
-          max-w-[1600px]
-          flex-col
-          items-center
-          justify-center
-          px-4
-          pb-14
-          pt-28
+          max-w-[1500px]
+          px-3
+          pt-3
           sm:px-6
-          md:min-h-[820px]
           md:px-8
-          lg:min-h-[860px]
-          lg:px-12
+          lg:px-10
         "
       >
-        {/* LOGO */}
         <div
           className="
-            relative
-            h-[260px]
-            w-full
-            max-w-[760px]
-            sm:h-[310px]
-            sm:max-w-[820px]
-            md:h-[360px]
-            md:max-w-[900px]
-            lg:h-[400px]
-            lg:max-w-[980px]
-          "
-        >
-          <Image
-            src="/images/clinica.jpeg"
-            alt="Juliana Vieira - Farmacêutica Esteta"
-            fill
-            priority
-            sizes="
-              (max-width: 640px) 92vw,
-              (max-width: 1024px) 80vw,
-              980px
-            "
-            className="
-              select-none
-              object-contain
-              object-center
-              mix-blend-multiply
-            "
-          />
-        </div>
-
-        {/* FRASE */}
-        <p
-          className="
-            mt-3
-            max-w-3xl
-            text-center
-            text-[15px]
-            leading-7
-            text-[#655d57]
-            sm:text-base
-            md:mt-5
-            md:text-lg
-          "
-        >
-          Estética avançada com cuidado,
-          equilíbrio e atenção aos detalhes.
-        </p>
-
-        {/* BOTÕES */}
-        <div
-          className="
-            mt-7
             flex
-            w-full
-            max-w-[520px]
-            flex-col
+            min-h-[70px]
             items-center
-            justify-center
-            gap-3
-            sm:flex-row
-          "
-        >
-          <a
-            href="#procedimentos"
-            className="
-              inline-flex
-              w-full
-              items-center
-              justify-center
-              rounded-full
-              bg-[#76509a]
-              px-8
-              py-4
-              text-sm
-              font-semibold
-              text-white
-              shadow-[0_12px_30px_rgba(118,80,154,0.20)]
-              transition-all
-              duration-300
-              hover:-translate-y-0.5
-              hover:bg-[#674286]
-              sm:w-auto
-              sm:min-w-[220px]
-            "
-          >
-            Ver procedimentos
-          </a>
-
-          <a
-            href="#agendar"
-            className="
-              inline-flex
-              w-full
-              items-center
-              justify-center
-              rounded-full
-              border
-              border-[#76509a]/35
-              bg-transparent
-              px-8
-              py-4
-              text-sm
-              font-semibold
-              text-[#76509a]
-              transition-all
-              duration-300
-              hover:-translate-y-0.5
-              hover:border-[#76509a]
-              hover:bg-[#76509a]/5
-              sm:w-auto
-              sm:min-w-[220px]
-            "
-          >
-            Agendar horário
-          </a>
-        </div>
-
-        {/* ENDEREÇO */}
-        <div
-          className="
-            mt-8
-            flex
-            max-w-xl
-            items-center
-            gap-3
-            rounded-full
+            justify-between
+            gap-4
+            rounded-[22px]
             border
-            border-[#76509a]/15
-            bg-white/35
-            px-5
-            py-3
-            shadow-[0_8px_24px_rgba(75,48,92,0.06)]
-            backdrop-blur-sm
-            sm:px-6
+            border-[#76509a]/10
+            bg-[#fffaf4]/95
+            px-4
+            shadow-[0_10px_35px_rgba(72,43,91,0.07)]
+            backdrop-blur-xl
+
+            sm:px-5
+            lg:min-h-[74px]
+            lg:px-6
           "
         >
-          {/* ÍCONE */}
-          <div
+          {/* LOGO */}
+          <a
+            href="#inicio"
+            aria-label="Juliana Vieira - Início"
             className="
               flex
-              h-9
-              w-9
-              shrink-0
+              min-w-0
               items-center
-              justify-center
-              rounded-full
-              bg-[#76509a]/10
-              text-[#76509a]
+              gap-3
             "
-            aria-hidden="true"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="h-5 w-5"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M12 21C12 21 18 15.5 18 9.5C18 6.18629 15.3137 3.5 12 3.5C8.68629 3.5 6 6.18629 6 9.5C6 15.5 12 21 12 21Z"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-
-              <circle
-                cx="12"
-                cy="9.5"
-                r="2.2"
-                stroke="currentColor"
-                strokeWidth="1.6"
-              />
-            </svg>
-          </div>
-
-          {/* TEXTO DO ENDEREÇO */}
-          <div className="min-w-0 text-left">
-            <p
+            {/* MONOGRAMA JV */}
+            <div
               className="
-                text-[10px]
-                font-semibold
-                uppercase
-                tracking-[0.2em]
-                text-[#76509a]/70
+                relative
+                flex
+                h-[48px]
+                w-[48px]
+                shrink-0
+                items-center
+                justify-center
+                rounded-[15px]
+                border
+                border-[#9c78b7]/35
+                bg-gradient-to-br
+                from-white
+                to-[#faf3fb]
+                shadow-[0_4px_12px_rgba(85,51,108,0.08)]
+
+                sm:h-[50px]
+                sm:w-[50px]
               "
             >
-              Onde estamos
-            </p>
+              <div className="relative flex items-center justify-center">
+                <span
+                  className="
+                    relative
+                    z-10
+                    font-display
+                    text-[27px]
+                    font-medium
+                    leading-none
+                    tracking-[-0.12em]
+                    text-[#6c4389]
 
-            <p
+                    sm:text-[29px]
+                  "
+                >
+                  J
+                </span>
+
+                <span
+                  className="
+                    relative
+                    -ml-[2px]
+                    mt-[3px]
+                    font-display
+                    text-[24px]
+                    font-medium
+                    italic
+                    leading-none
+                    tracking-[-0.10em]
+                    text-[#8a64a5]
+
+                    sm:text-[26px]
+                  "
+                >
+                  V
+                </span>
+
+                {/* detalhe fino do monograma */}
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 60 25"
+                  fill="none"
+                  className="
+                    pointer-events-none
+                    absolute
+                    -right-[8px]
+                    -top-[7px]
+                    h-[18px]
+                    w-[35px]
+                  "
+                >
+                  <path
+                    d="M2 19C15 18 21 4 34 5C43 6 47 10 57 2"
+                    stroke="#8b65a6"
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </div>
+            </div>
+
+            {/* NOME */}
+            <div className="min-w-0">
+              <p
+                className="
+                  whitespace-nowrap
+                  font-display
+                  text-[18px]
+                  font-medium
+                  leading-[1]
+                  tracking-[0.01em]
+                  text-[#5f3a78]
+
+                  sm:text-[21px]
+                "
+              >
+                Juliana Vieira
+              </p>
+
+              <div
+                className="
+                  mt-[5px]
+                  flex
+                  items-center
+                  gap-2
+                "
+              >
+                <span
+                  aria-hidden="true"
+                  className="
+                    hidden
+                    h-px
+                    w-4
+                    bg-[#b698c9]
+                    sm:block
+                  "
+                />
+
+                <p
+                  className="
+                    whitespace-nowrap
+                    text-[7px]
+                    font-semibold
+                    uppercase
+                    tracking-[0.27em]
+                    text-[#8b6ba0]
+
+                    sm:text-[8px]
+                  "
+                >
+                  Farmacêutica Esteta
+                </p>
+              </div>
+            </div>
+          </a>
+
+          {/* MENU DESKTOP */}
+          <nav className="hidden items-center gap-7 lg:flex xl:gap-9">
+            {LINKS.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="
+                  relative
+                  text-[13px]
+                  font-semibold
+                  text-[#625867]
+                  transition
+                  duration-200
+
+                  after:absolute
+                  after:-bottom-2
+                  after:left-1/2
+                  after:h-px
+                  after:w-0
+                  after:-translate-x-1/2
+                  after:bg-[#76509a]
+                  after:transition-all
+                  after:duration-300
+
+                  hover:text-[#704093]
+                  hover:after:w-full
+                "
+              >
+                {link.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* AÇÕES */}
+          <div className="flex items-center gap-2">
+            <a
+              href="#agendar"
               className="
-                mt-0.5
+                hidden
+                min-h-[46px]
+                items-center
+                justify-center
+                rounded-full
+                bg-[#704093]
+                px-5
                 text-[13px]
-                font-medium
-                leading-5
-                text-[#514a46]
-                sm:text-sm
+                font-bold
+                text-white
+                shadow-[0_10px_24px_rgba(86,48,112,0.22)]
+                transition
+
+                hover:-translate-y-0.5
+                hover:bg-[#5d347b]
+
+                sm:inline-flex
               "
             >
-              Setembrino de Carvalho, 969
-              <span className="mx-2 text-[#76509a]/40">
-                •
+              Agende seu horário
+
+              <span
+                aria-hidden="true"
+                className="ml-2 text-lg leading-none"
+              >
+                →
               </span>
-              Uruguaiana
-            </p>
+            </a>
+
+            {/* BOTÃO MENU MOBILE */}
+            <button
+              type="button"
+              onClick={() =>
+                setOpen((current) => !current)
+              }
+              aria-label={
+                open ? "Fechar menu" : "Abrir menu"
+              }
+              aria-expanded={open}
+              aria-controls="mobile-menu"
+              className="
+                flex
+                h-11
+                w-11
+                shrink-0
+                items-center
+                justify-center
+                rounded-full
+                border
+                border-[#76509a]/15
+                bg-white
+                text-[22px]
+                font-semibold
+                text-[#704093]
+                shadow-sm
+                transition
+
+                hover:bg-[#76509a]/5
+
+                lg:hidden
+              "
+            >
+              {open ? "×" : "☰"}
+            </button>
           </div>
         </div>
 
-        {/* SETA */}
-        <a
-          href="#procedimentos"
-          aria-label="Ir para procedimentos"
-          className="
-            mt-8
-            flex
-            h-11
-            w-11
-            items-center
-            justify-center
-            rounded-full
-            border
-            border-[#76509a]/30
-            bg-transparent
-            text-lg
-            text-[#76509a]
-            transition
-            duration-300
-            hover:translate-y-1
-            hover:bg-[#76509a]/5
-          "
-        >
-          ↓
-        </a>
+        {/* MENU MOBILE */}
+        {open && (
+          <div
+            id="mobile-menu"
+            className="
+              mt-2
+              overflow-hidden
+              rounded-[20px]
+              border
+              border-[#76509a]/10
+              bg-[#fffaf4]/[0.98]
+              p-2
+              shadow-[0_18px_45px_rgba(72,43,91,0.12)]
+              backdrop-blur-xl
+
+              lg:hidden
+            "
+          >
+            <nav className="flex flex-col">
+              {LINKS.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setOpen(false)}
+                  className="
+                    rounded-[14px]
+                    px-4
+                    py-3.5
+                    text-[15px]
+                    font-semibold
+                    text-[#5d5260]
+                    transition
+
+                    hover:bg-[#76509a]/[0.07]
+                    hover:text-[#704093]
+                  "
+                >
+                  {link.label}
+                </a>
+              ))}
+
+              <a
+                href="#agendar"
+                onClick={() => setOpen(false)}
+                className="
+                  mt-1
+                  inline-flex
+                  min-h-[48px]
+                  items-center
+                  justify-center
+                  rounded-[15px]
+                  bg-[#704093]
+                  px-5
+                  text-sm
+                  font-bold
+                  text-white
+
+                  sm:hidden
+                "
+              >
+                Agende seu horário
+
+                <span
+                  aria-hidden="true"
+                  className="ml-2 text-lg"
+                >
+                  →
+                </span>
+              </a>
+            </nav>
+          </div>
+        )}
       </div>
-    </section>
+    </header>
   );
 }

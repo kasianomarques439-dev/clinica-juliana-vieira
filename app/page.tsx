@@ -18,14 +18,19 @@ export default async function HomePage() {
     .select("*")
     .eq("is_active", true)
     .neq("name", "Avaliação")
-    .order("display_order", { ascending: true });
+    .order("display_order", {
+      ascending: true,
+    });
 
   if (error) {
-    console.error("Erro ao carregar procedimentos:", error);
+    console.error(
+      "Erro ao carregar procedimentos:",
+      error
+    );
   }
 
   return (
-    <main>
+    <main className="min-h-screen overflow-x-hidden bg-[#fffaf4]">
       <Header />
       <Hero />
       <ProceduresGrid procedures={procedures ?? []} />

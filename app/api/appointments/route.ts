@@ -1,15 +1,52 @@
-import { createClient } from "@supabase/supabase-js";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { sendNewAppointmentEmail } from "@/lib/email";
 import { isValidPhone } from "@/lib/utils";
 
-export const runtime = "nodejs";
+/*
+ * ============================================================
+ * PROTEÇÃO CONTRA SPAM / ABUSO
+ * ============================================================
+ *
+ * Esta é uma primeira camada de proteção dentro da aplicação.
+ *
+ * Limites:
+ * - máximo de 6 requisições por IP em 10 minutos;
+ * - máximo de 3 tentativas para o mesmo telefone em 30 minutos.
+ *
+ * Depois adicionaremos uma camada mais forte usando proteção
+ * da Vercel/CAPTCHA.
+ * ============================================================
+ */
+
+type RateLimitEntry = {
+  count: number;
+  expiresAt: number;
+};
+
+const ipRateLimit = new Map<string, RateLimitEntry>();
+const phoneRateLimit = new Map<string, RateLimitEntry>();
+
+const IP_LIMIT = 6;
+const IP_WINDOW_MS = 10 * 60 * 1000;
+
+const PHONE_LIMIT = 3;
+const PHONE_WINDOW_MS = 30 * 60 * 1000;
+
+const MAX_BODY_SIZE = 4096;
+
+/*
+ * ============================================================
+ * VALIDAÇÃO DO FORMULÁRIO
+ * ============================================================
+ */
 
 const bodySchema = z.object({
-  slotId: z.string().uuid("Horário inválido"),
+  slotId: z.string().uuid(),
 
-  procedureId: z.string().uuid("Procedimento inválido"),
+  procedureId: z.string().uuid(),
 
   fullName: z
     .string()
@@ -30,57 +67,334 @@ const bodySchema = z.object({
     .transform((value) => value.toLowerCase()),
 });
 
-function jsonResponse(
-  body: Record<string, unknown>,
-  status: number
-) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
-  });
+/*
+ * ============================================================
+ * PEGA O IP DA REQUISIÇÃO
+ * ============================================================
+ */
+
+function getClientIp(request: Request) {
+  const forwardedFor =
+    request.headers.get("x-forwarded-for");
+
+  if (forwardedFor) {
+    return forwardedFor
+      .split(",")[0]
+      ?.trim()
+      .slice(0, 100);
+  }
+
+  const realIp =
+    request.headers.get("x-real-ip");
+
+  if (realIp) {
+    return realIp.trim().slice(0, 100);
+  }
+
+  return "unknown";
 }
 
-function createServerSupabaseClient() {
-  const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL;
+/*
+ * ============================================================
+ * FUNÇÃO DE RATE LIMIT
+ * ============================================================
+ */
 
-  const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY;
+function checkRateLimit(
+  store: Map<string, RateLimitEntry>,
+  key: string,
+  limit: number,
+  windowMs: number
+) {
+  const now = Date.now();
 
-  if (!supabaseUrl) {
-    throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL não configurada."
-    );
+  const current =
+    store.get(key);
+
+  if (
+    !current ||
+    current.expiresAt <= now
+  ) {
+    store.set(key, {
+      count: 1,
+      expiresAt: now + windowMs,
+    });
+
+    return {
+      allowed: true,
+      retryAfter: 0,
+    };
   }
 
-  if (!serviceRoleKey) {
-    throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY não configurada."
-    );
+  if (current.count >= limit) {
+    const retryAfter =
+      Math.max(
+        1,
+        Math.ceil(
+          (current.expiresAt - now) /
+            1000
+        )
+      );
+
+    return {
+      allowed: false,
+      retryAfter,
+    };
   }
 
-  return createClient(
-    supabaseUrl,
-    serviceRoleKey,
+  current.count += 1;
+
+  store.set(key, current);
+
+  return {
+    allowed: true,
+    retryAfter: 0,
+  };
+}
+
+/*
+ * ============================================================
+ * LIMPEZA DE REGISTROS EXPIRADOS
+ * ============================================================
+ */
+
+function cleanupRateLimits() {
+  const now = Date.now();
+
+  for (const [key, value] of ipRateLimit) {
+    if (value.expiresAt <= now) {
+      ipRateLimit.delete(key);
+    }
+  }
+
+  for (
+    const [key, value] of phoneRateLimit
+  ) {
+    if (value.expiresAt <= now) {
+      phoneRateLimit.delete(key);
+    }
+  }
+}
+
+/*
+ * ============================================================
+ * RESPOSTA PADRÃO SEM CACHE
+ * ============================================================
+ */
+
+function jsonResponse(
+  body: Record<string, unknown>,
+  status: number,
+  extraHeaders?: Record<string, string>
+) {
+  return NextResponse.json(
+    body,
     {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
+      status,
+
+      headers: {
+        "Cache-Control":
+          "no-store, max-age=0",
+
+        ...extraHeaders,
       },
     }
   );
 }
 
+/*
+ * ============================================================
+ * API DE AGENDAMENTO
+ * ============================================================
+ */
+
 export async function POST(
   request: Request
 ) {
   try {
-    const json = await request
-      .json()
-      .catch(() => null);
+    /*
+     * =========================================================
+     * 1. LIMPEZA DO RATE LIMIT
+     * =========================================================
+     */
+
+    cleanupRateLimits();
+
+    /*
+     * =========================================================
+     * 2. PROTEÇÃO CONTRA REQUISIÇÃO CROSS-SITE
+     * =========================================================
+     *
+     * Isso dificulta que outro site tente disparar o endpoint
+     * através do navegador da vítima.
+     * =========================================================
+     */
+
+    const requestUrl =
+      new URL(request.url);
+
+    const origin =
+      request.headers.get("origin");
+
+    const fetchSite =
+      request.headers.get(
+        "sec-fetch-site"
+      );
+
+    if (fetchSite === "cross-site") {
+      return jsonResponse(
+        {
+          error:
+            "Requisição não autorizada.",
+        },
+        403
+      );
+    }
+
+    if (
+      origin &&
+      origin !== requestUrl.origin
+    ) {
+      return jsonResponse(
+        {
+          error:
+            "Origem da requisição não autorizada.",
+        },
+        403
+      );
+    }
+
+    /*
+     * =========================================================
+     * 3. RATE LIMIT POR IP
+     * =========================================================
+     */
+
+    const clientIp =
+      getClientIp(request);
+
+    const ipCheck =
+      checkRateLimit(
+        ipRateLimit,
+        clientIp,
+        IP_LIMIT,
+        IP_WINDOW_MS
+      );
+
+    if (!ipCheck.allowed) {
+      return jsonResponse(
+        {
+          error:
+            "Muitas tentativas de agendamento. Aguarde alguns minutos e tente novamente.",
+        },
+        429,
+        {
+          "Retry-After":
+            String(
+              ipCheck.retryAfter
+            ),
+        }
+      );
+    }
+
+    /*
+     * =========================================================
+     * 4. ACEITA APENAS JSON
+     * =========================================================
+     */
+
+    const contentType =
+      request.headers.get(
+        "content-type"
+      );
+
+    if (
+      !contentType
+        ?.toLowerCase()
+        .includes(
+          "application/json"
+        )
+    ) {
+      return jsonResponse(
+        {
+          error:
+            "Formato de requisição inválido.",
+        },
+        415
+      );
+    }
+
+    /*
+     * =========================================================
+     * 5. LIMITA O TAMANHO DA REQUISIÇÃO
+     * =========================================================
+     */
+
+    const contentLength =
+      request.headers.get(
+        "content-length"
+      );
+
+    if (contentLength) {
+      const size =
+        Number(contentLength);
+
+      if (
+        Number.isFinite(size) &&
+        size > MAX_BODY_SIZE
+      ) {
+        return jsonResponse(
+          {
+            error:
+              "Requisição muito grande.",
+          },
+          413
+        );
+      }
+    }
+
+    /*
+     * =========================================================
+     * 6. LÊ O JSON
+     * =========================================================
+     */
+
+    const rawBody =
+      await request.text();
+
+    if (
+      rawBody.length >
+      MAX_BODY_SIZE
+    ) {
+      return jsonResponse(
+        {
+          error:
+            "Requisição muito grande.",
+        },
+        413
+      );
+    }
+
+    let json: unknown;
+
+    try {
+      json =
+        JSON.parse(rawBody);
+    } catch {
+      return jsonResponse(
+        {
+          error:
+            "Dados inválidos.",
+        },
+        400
+      );
+    }
+
+    /*
+     * =========================================================
+     * 7. VALIDA OS DADOS RECEBIDOS
+     * =========================================================
+     */
 
     const parsed =
       bodySchema.safeParse(json);
@@ -89,7 +403,7 @@ export async function POST(
       return jsonResponse(
         {
           error:
-            "Dados inválidos. Confira procedimento, horário, nome, telefone e e-mail.",
+            "Dados inválidos. Confira nome, telefone e e-mail.",
         },
         400
       );
@@ -103,17 +417,68 @@ export async function POST(
       email,
     } = parsed.data;
 
-    const supabase =
-      createServerSupabaseClient();
+    /*
+     * =========================================================
+     * 8. NORMALIZA O TELEFONE
+     * =========================================================
+     */
+
+    const normalizedPhone =
+      phone.replace(/\D/g, "");
 
     /*
      * =========================================================
-     * 1. VALIDA O PROCEDIMENTO
+     * 9. RATE LIMIT PELO TELEFONE
      * =========================================================
      *
-     * O procedimento continua obrigatório e é salvo
-     * no agendamento, mas NÃO pertence mais ao slot.
+     * Mesmo que alguém troque rapidamente de IP,
+     * não poderá tentar agendar inúmeras vezes usando
+     * o mesmo telefone.
+     * =========================================================
      */
+
+    const phoneCheck =
+      checkRateLimit(
+        phoneRateLimit,
+        normalizedPhone,
+        PHONE_LIMIT,
+        PHONE_WINDOW_MS
+      );
+
+    if (!phoneCheck.allowed) {
+      return jsonResponse(
+        {
+          error:
+            "Muitas tentativas para este número. Aguarde um pouco antes de tentar novamente.",
+        },
+        429,
+        {
+          "Retry-After":
+            String(
+              phoneCheck.retryAfter
+            ),
+        }
+      );
+    }
+
+    /*
+     * =========================================================
+     * 10. CLIENTE ADMIN DO SUPABASE
+     * =========================================================
+     *
+     * A SERVICE ROLE permanece somente no servidor.
+     * =========================================================
+     */
+
+    const supabase =
+      createAdminClient();
+
+    /*
+     * =========================================================
+     * 11. CONFERE O PROCEDIMENTO
+     * =========================================================
+     */
+
     const {
       data: procedure,
       error: procedureError,
@@ -146,24 +511,17 @@ export async function POST(
 
     /*
      * =========================================================
-     * 2. VALIDA O HORÁRIO GLOBAL
+     * 12. CONFERE O HORÁRIO
      * =========================================================
-     *
-     * IMPORTANTE:
-     * O slot agora é GLOBAL.
-     *
-     * Não fazemos mais:
-     * slot.procedure_id === procedureId
-     *
-     * porque procedure_id do slot fica NULL.
      */
+
     const {
       data: slot,
       error: slotError,
     } = await supabase
       .from("available_slots")
       .select(
-        "id, slot_date, slot_time, status"
+        "id, procedure_id, slot_date, slot_time, status"
       )
       .eq("id", slotId)
       .maybeSingle();
@@ -190,9 +548,29 @@ export async function POST(
 
     /*
      * =========================================================
-     * 3. CONFERE SE O HORÁRIO ESTÁ LIVRE
+     * 13. CONFERE PROCEDIMENTO DO HORÁRIO
      * =========================================================
      */
+
+    if (
+      slot.procedure_id !==
+      procedureId
+    ) {
+      return jsonResponse(
+        {
+          error:
+            "Este horário não pertence ao procedimento selecionado.",
+        },
+        400
+      );
+    }
+
+    /*
+     * =========================================================
+     * 14. CONFERE SE O HORÁRIO ESTÁ LIVRE
+     * =========================================================
+     */
+
     if (
       slot.status !== "open"
     ) {
@@ -207,46 +585,14 @@ export async function POST(
 
     /*
      * =========================================================
-     * 4. NÃO PERMITE HORÁRIO NO PASSADO
-     * =========================================================
-     */
-    const today =
-      new Date().toISOString().slice(0, 10);
-
-    if (
-      slot.slot_date < today
-    ) {
-      return jsonResponse(
-        {
-          error:
-            "Não é possível agendar um horário passado.",
-        },
-        400
-      );
-    }
-
-    /*
-     * =========================================================
-     * 5. NORMALIZA TELEFONE
-     * =========================================================
-     */
-    const normalizedPhone =
-      phone.replace(/\D/g, "");
-
-    /*
-     * =========================================================
-     * 6. CRIA O AGENDAMENTO
+     * 15. CRIA O AGENDAMENTO
      * =========================================================
      *
-     * A RPC no banco:
-     * - trava o slot com FOR UPDATE;
-     * - confirma se ainda está open;
-     * - salva o procedimento escolhido;
-     * - muda o slot global para booked.
-     *
-     * Portanto duas clientes não conseguem ficar
-     * com o mesmo dia/horário.
+     * create_appointment agora só pode ser chamada
+     * pela SERVICE ROLE.
+     * =========================================================
      */
+
     const {
       data: appointmentId,
       error: appointmentError,
@@ -266,6 +612,12 @@ export async function POST(
           normalizedPhone,
       }
     );
+
+    /*
+     * =========================================================
+     * 16. TRATA ERROS DO AGENDAMENTO
+     * =========================================================
+     */
 
     if (appointmentError) {
       console.error(
@@ -292,12 +644,6 @@ export async function POST(
         ) ||
         message.includes(
           "booked"
-        ) ||
-        message.includes(
-          "horário"
-        ) ||
-        message.includes(
-          "horario"
         );
 
       if (unavailable) {
@@ -318,7 +664,7 @@ export async function POST(
         return jsonResponse(
           {
             error:
-              "O procedimento selecionado não está disponível.",
+              "Procedimento inválido para este horário.",
           },
           400
         );
@@ -350,37 +696,6 @@ export async function POST(
         );
       }
 
-      if (
-        message.includes(
-          "domingo"
-        )
-      ) {
-        return jsonResponse(
-          {
-            error:
-              "Não há atendimento aos domingos.",
-          },
-          400
-        );
-      }
-
-      if (
-        message.includes(
-          "período de atendimento"
-        ) ||
-        message.includes(
-          "periodo de atendimento"
-        )
-      ) {
-        return jsonResponse(
-          {
-            error:
-              "Horário fora do período de atendimento.",
-          },
-          400
-        );
-      }
-
       return jsonResponse(
         {
           error:
@@ -389,6 +704,12 @@ export async function POST(
         500
       );
     }
+
+    /*
+     * =========================================================
+     * 17. GARANTE QUE RECEBEU ID
+     * =========================================================
+     */
 
     if (!appointmentId) {
       console.error(
@@ -406,14 +727,10 @@ export async function POST(
 
     /*
      * =========================================================
-     * 7. SALVA O E-MAIL DO CLIENTE
+     * 18. SALVA O E-MAIL
      * =========================================================
-     *
-     * A RPC ainda recebe:
-     * horário, procedimento, nome e telefone.
-     *
-     * Por isso o email é salvo logo depois.
      */
+
     const {
       error: emailSaveError,
     } = await supabase
@@ -435,12 +752,14 @@ export async function POST(
 
     /*
      * =========================================================
-     * 8. ENVIA E-MAIL PARA A CLÍNICA
+     * 19. ENVIA NOTIFICAÇÃO POR E-MAIL
      * =========================================================
      *
-     * Falha no envio do e-mail não cancela
-     * o agendamento já confirmado.
+     * Se o envio do e-mail falhar, o agendamento
+     * continua confirmado.
+     * =========================================================
      */
+
     try {
       await sendNewAppointmentEmail({
         fullName:
@@ -473,9 +792,10 @@ export async function POST(
 
     /*
      * =========================================================
-     * 9. SUCESSO
+     * 20. SUCESSO
      * =========================================================
      */
+
     return jsonResponse(
       {
         id: appointmentId,

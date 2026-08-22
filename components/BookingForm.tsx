@@ -65,38 +65,67 @@ function getMonth(date: string) {
     .replace(".", "");
 }
 
-function getSaturdayOfCurrentWeek(dateString: string) {
+function formatDateToIso(date: Date) {
+  const year = date.getFullYear();
+
+  const month = String(
+    date.getMonth() + 1
+  ).padStart(2, "0");
+
+  const day = String(
+    date.getDate()
+  ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getTodayIso() {
+  return formatDateToIso(
+    new Date()
+  );
+}
+
+function getBookingWindowEnd(
+  dateString: string
+) {
   const date = new Date(
     `${dateString}T12:00:00`
   );
 
-  const dayOfWeek = date.getDay();
-
-  const daysUntilSaturday =
-    dayOfWeek === 0
-      ? 6
-      : 6 - dayOfWeek;
-
-  const saturday =
-    new Date(date);
-
-  saturday.setDate(
-    date.getDate() +
-      daysUntilSaturday
+  date.setDate(
+    date.getDate() + 13
   );
 
-  const year =
-    saturday.getFullYear();
+  return formatDateToIso(date);
+}
 
-  const month = String(
-    saturday.getMonth() + 1
-  ).padStart(2, "0");
+function getBookingDates(
+  dateString: string
+) {
+  const start = new Date(
+    `${dateString}T12:00:00`
+  );
 
-  const day = String(
-    saturday.getDate()
-  ).padStart(2, "0");
+  return Array.from(
+    { length: 14 },
+    (_item, index) => {
+      const date = new Date(start);
 
-  return `${year}-${month}-${day}`;
+      date.setDate(
+        start.getDate() + index
+      );
+
+      return formatDateToIso(date);
+    }
+  );
+}
+
+function isSunday(dateString: string) {
+  return (
+    new Date(
+      `${dateString}T12:00:00`
+    ).getDay() === 0
+  );
 }
 
 export default function BookingForm() {
@@ -255,20 +284,17 @@ export default function BookingForm() {
 
       setError(null);
 
-      const today = new Date()
-        .toISOString()
-        .slice(0, 10);
+      const today =
+        getTodayIso();
 
-      const saturday =
-        getSaturdayOfCurrentWeek(
-          today
-        );
+      const bookingWindowEnd =
+        getBookingWindowEnd(today);
 
       const result = await supabase
         .from("available_slots")
         .select("*")
         .gte("slot_date", today)
-        .lte("slot_date", saturday)
+        .lte("slot_date", bookingWindowEnd)
         .order("slot_date", {
           ascending: true,
         })
@@ -293,11 +319,6 @@ export default function BookingForm() {
 
         setSlots(newSlots);
 
-        /*
-         * Se o horário que a pessoa estava vendo/acessando
-         * acabou de ser reservado em outro aparelho,
-         * removemos a seleção antiga.
-         */
         if (selectedSlot) {
           const stillAvailable =
             newSlots.some(
@@ -330,22 +351,10 @@ export default function BookingForm() {
     ]
   );
 
-  /*
-   * CARREGAMENTO NORMAL.
-   */
   useEffect(() => {
     void loadSlots(true);
   }, [loadSlots]);
 
-  /*
-   * ATUALIZAÇÃO AUTOMÁTICA ENTRE APARELHOS.
-   *
-   * A cada 5 segundos faz uma consulta leve somente dos
-   * horários da semana atual com seus status.
-   *
-   * Isso evita que um horário reservado no celular continue
-   * aparecendo livre no notebook.
-   */
   useEffect(() => {
     if (!procedure) {
       return;
@@ -363,10 +372,6 @@ export default function BookingForm() {
     };
   }, [procedure, loadSlots]);
 
-  /*
-   * QUANDO A PESSOA VOLTA PARA A ABA,
-   * atualiza imediatamente.
-   */
   useEffect(() => {
     if (!procedure) {
       return;
@@ -429,12 +434,12 @@ export default function BookingForm() {
     return grouped;
   }, [slots]);
 
-  const availableDates = useMemo(
+  const bookingDates = useMemo(
     () =>
-      Array.from(
-        slotsByDate.keys()
+      getBookingDates(
+        getTodayIso()
       ),
-    [slotsByDate]
+    []
   );
 
   function selectDate(date: string) {
@@ -645,7 +650,10 @@ export default function BookingForm() {
       className="
         relative
         overflow-hidden
-        bg-[#f8f2e9]
+        bg-gradient-to-br
+        from-[#684083]
+        via-[#76509a]
+        to-[#56366f]
         py-20
         md:py-28
       "
@@ -704,7 +712,9 @@ export default function BookingForm() {
               text-[#76509a]
             "
           >
-            Agendamento
+            <span className="text-[#ead9b6]">
+              Agendamento
+            </span>
           </p>
 
           <h2
@@ -712,7 +722,7 @@ export default function BookingForm() {
               font-display
               text-4xl
               leading-tight
-              text-[#252a25]
+              text-white
               md:text-5xl
             "
           >
@@ -726,12 +736,12 @@ export default function BookingForm() {
               max-w-2xl
               text-sm
               leading-7
-              text-[#6d6863]
+              text-white/80
               md:text-base
             "
           >
-            Escolha uma data e um
-            horário disponíveis para
+            Escolha entre os próximos 14 dias
+            e veja os horários disponíveis para
             realizar seu procedimento.
           </p>
         </div>
@@ -743,8 +753,8 @@ export default function BookingForm() {
             max-w-5xl
             rounded-[28px]
             border
-            border-[#76509a]/10
-            bg-white/80
+            border-white/25
+            bg-white
             p-5
             shadow-[0_24px_70px_rgba(61,46,72,0.08)]
             backdrop-blur-sm
@@ -841,80 +851,270 @@ export default function BookingForm() {
                 </div>
               )}
 
-              {!loadingSlots &&
-                availableDates.length ===
-                  0 &&
-                !error && (
-                  <div
-                    className="
-                      rounded-[20px]
-                      border
-                      border-[#76509a]/10
-                      bg-[#faf7f3]
-                      px-6
-                      py-10
-                      text-center
-                    "
-                  >
+              {!loadingSlots && (
+                <div className="space-y-10">
+                  {/* DATAS */}
+                  <div>
                     <div
                       className="
-                        mx-auto
+                        mb-5
                         flex
-                        h-12
-                        w-12
                         items-center
-                        justify-center
-                        rounded-full
-                        bg-[#76509a]/10
+                        justify-between
+                        gap-4
+                      "
+                    >
+                      <div>
+                        <p
+                          className="
+                            text-xs
+                            font-semibold
+                            uppercase
+                            tracking-[0.18em]
+                            text-[#76509a]
+                          "
+                        >
+                          Etapa 1
+                        </p>
+
+                        <h3
+                          className="
+                            mt-1
+                            font-display
+                            text-2xl
+                            text-[#2f302d]
+                          "
+                        >
+                          Escolha a data
+                        </h3>
+                      </div>
+
+                      <span
+                        className="
+                          hidden
+                          text-sm
+                          text-[#87817c]
+                          sm:block
+                        "
+                      >
+                        Próximos 14 dias
+                      </span>
+                    </div>
+
+                    <div
+                      className="
+                        mb-3
+                        flex
+                        items-center
+                        gap-2
+                        text-[13px]
+                        font-semibold
                         text-[#76509a]
                       "
                     >
-                      ◷
+                      <span aria-hidden="true">
+                        ←
+                      </span>
+
+                      <span>
+                        Deslize para ver os próximos dias
+                      </span>
+
+                      <span aria-hidden="true">
+                        →
+                      </span>
                     </div>
 
-                    <p
+                    <div
                       className="
-                        mt-4
-                        font-medium
-                        text-[#393936]
+                        flex
+                        snap-x
+                        snap-mandatory
+                        gap-3
+                        overflow-x-auto
+                        overscroll-x-contain
+                        pb-3
+                        [&::-webkit-scrollbar]:hidden
                       "
+                      style={{
+                        scrollbarWidth:
+                          "none",
+                        WebkitOverflowScrolling:
+                          "touch",
+                      }}
                     >
-                      Nenhum horário disponível
-                      no momento.
-                    </p>
+                      {bookingDates.map(
+                        (date) => {
+                          const selected =
+                            selectedDate ===
+                            date;
 
-                    <p
-                      className="
-                        mx-auto
-                        mt-2
-                        max-w-md
-                        text-sm
-                        leading-6
-                        text-[#77716c]
-                      "
-                    >
-                      Os horários livres da clínica
-                      aparecem aqui para qualquer
-                      procedimento. Se não houver opções,
-                      tente novamente mais tarde ou fale
-                      conosco pelo WhatsApp.
-                    </p>
+                          const sunday =
+                            isSunday(date);
+
+                          const dateSlots =
+                            slotsByDate.get(
+                              date
+                            ) ?? [];
+
+                          const openCount =
+                            dateSlots.filter(
+                              (slot) =>
+                                slot.status ===
+                                "open"
+                            ).length;
+
+                          return (
+                            <button
+                              key={date}
+                              type="button"
+                              disabled={sunday}
+                              onClick={() => {
+                                if (sunday) {
+                                  return;
+                                }
+
+                                selectDate(
+                                  date
+                                );
+                              }}
+                              aria-label={
+                                sunday
+                                  ? `${formatDateLong(
+                                      date
+                                    )} - fechado`
+                                  : `${formatDateLong(
+                                      date
+                                    )} - ${openCount} horário(s) livre(s)`
+                              }
+                              className={`
+                                flex
+                                min-h-[105px]
+                                w-[150px]
+                                min-w-[150px]
+                                flex-none
+                                snap-start
+                                flex-col
+                                items-center
+                                justify-center
+                                rounded-[18px]
+                                border
+                                px-2
+                                py-4
+                                text-center
+                                transition-all
+                                duration-300
+                                ${
+                                  sunday
+                                    ? "cursor-not-allowed border-[#e8e2e9] bg-[#f4f1f5] text-[#aaa3ac] opacity-70"
+                                    : selected
+                                      ? "border-[#76509a] bg-[#76509a] text-white shadow-[0_12px_25px_rgba(118,80,154,0.22)] -translate-y-1"
+                                      : "border-[#ded5e4] bg-white text-[#3f3b3f] hover:-translate-y-1 hover:border-[#76509a]/45 hover:shadow-md"
+                                }
+                              `}
+                            >
+                              <span
+                                className={`
+                                  text-[11px]
+                                  font-semibold
+                                  uppercase
+                                  tracking-[0.12em]
+                                  ${
+                                    selected
+                                      ? "text-white/75"
+                                      : "text-[#8a828b]"
+                                  }
+                                `}
+                              >
+                                {getWeekday(
+                                  date
+                                )}
+                              </span>
+
+                              <span
+                                className="
+                                  my-1
+                                  font-display
+                                  text-3xl
+                                  leading-none
+                                "
+                              >
+                                {getDayNumber(
+                                  date
+                                )}
+                              </span>
+
+                              <span
+                                className={`
+                                  text-xs
+                                  capitalize
+                                  ${
+                                    selected
+                                      ? "text-white/80"
+                                      : "text-[#877f79]"
+                                  }
+                                `}
+                              >
+                                {getMonth(
+                                  date
+                                )}
+                              </span>
+
+                              <span
+                                className={`
+                                  mt-2
+                                  rounded-full
+                                  px-2.5
+                                  py-1
+                                  text-[10px]
+                                  font-bold
+                                  leading-none
+                                  ${
+                                    sunday
+                                      ? "bg-[#e8e3e9] text-[#8f8791]"
+                                      : selected
+                                        ? "bg-white/15 text-white"
+                                        : openCount > 0
+                                          ? "bg-[#efe6f4] text-[#704093]"
+                                          : "bg-[#f1eef1] text-[#999198]"
+                                  }
+                                `}
+                              >
+                                {sunday
+                                  ? "Fechado"
+                                  : openCount > 0
+                                    ? `${openCount} livre${
+                                        openCount === 1
+                                          ? ""
+                                          : "s"
+                                      }`
+                                    : "Sem horários"}
+                              </span>
+                            </button>
+                          );
+                        }
+                      )}
+                    </div>
                   </div>
-                )}
 
-              {!loadingSlots &&
-                availableDates.length >
-                  0 && (
-                  <div className="space-y-10">
-                    {/* DATAS */}
-                    <div>
+                  {/* HORÁRIOS */}
+                  {selectedDate && (
+                    <div
+                      className="
+                        border-t
+                        border-[#76509a]/10
+                        pt-8
+                      "
+                    >
                       <div
                         className="
                           mb-5
                           flex
-                          items-center
-                          justify-between
-                          gap-4
+                          flex-col
+                          gap-2
+                          sm:flex-row
+                          sm:items-end
+                          sm:justify-between
                         "
                       >
                         <div>
@@ -927,7 +1127,7 @@ export default function BookingForm() {
                               text-[#76509a]
                             "
                           >
-                            Etapa 1
+                            Etapa 2
                           </p>
 
                           <h3
@@ -938,197 +1138,78 @@ export default function BookingForm() {
                               text-[#2f302d]
                             "
                           >
-                            Escolha a data
+                            Escolha o horário
                           </h3>
                         </div>
 
-                        <span
+                        <p
                           className="
-                            hidden
                             text-sm
-                            text-[#87817c]
-                            sm:block
+                            capitalize
+                            text-[#77716c]
                           "
                         >
-                          Semana atual
-                        </span>
+                          {formatDateLong(
+                            selectedDate
+                          )}
+                        </p>
                       </div>
 
                       <div
                         className="
-                          flex
+                          grid
+                          grid-cols-3
                           gap-3
-                          overflow-x-auto
-                          pb-2
-                          [&::-webkit-scrollbar]:hidden
-                        "
-                        style={{
-                          scrollbarWidth:
-                            "none",
-                          WebkitOverflowScrolling:
-                            "touch",
-                        }}
-                      >
-                        {availableDates.map(
-                          (date) => {
-                            const selected =
-                              selectedDate ===
-                              date;
-
-                            return (
-                              <button
-                                key={date}
-                                type="button"
-                                onClick={() =>
-                                  selectDate(
-                                    date
-                                  )
-                                }
-                                className={`
-                                  flex
-                                  min-h-[105px]
-                                  w-[150px]
-                                  min-w-[150px]
-                                  flex-none
-                                  flex-col
-                                  items-center
-                                  justify-center
-                                  rounded-[18px]
-                                  border
-                                  px-2
-                                  py-4
-                                  text-center
-                                  transition-all
-                                  duration-300
-                                  ${
-                                    selected
-                                      ? "border-[#76509a] bg-[#76509a] text-white shadow-[0_12px_25px_rgba(118,80,154,0.22)] -translate-y-1"
-                                      : "border-[#ded5e4] bg-white text-[#3f3b3f] hover:-translate-y-1 hover:border-[#76509a]/45 hover:shadow-md"
-                                  }
-                                `}
-                              >
-                                <span
-                                  className={`
-                                    text-[11px]
-                                    font-semibold
-                                    uppercase
-                                    tracking-[0.12em]
-                                    ${
-                                      selected
-                                        ? "text-white/75"
-                                        : "text-[#8a828b]"
-                                    }
-                                  `}
-                                >
-                                  {getWeekday(
-                                    date
-                                  )}
-                                </span>
-
-                                <span
-                                  className="
-                                    my-1
-                                    font-display
-                                    text-3xl
-                                    leading-none
-                                  "
-                                >
-                                  {getDayNumber(
-                                    date
-                                  )}
-                                </span>
-
-                                <span
-                                  className={`
-                                    text-xs
-                                    capitalize
-                                    ${
-                                      selected
-                                        ? "text-white/80"
-                                        : "text-[#877f79]"
-                                    }
-                                  `}
-                                >
-                                  {getMonth(
-                                    date
-                                  )}
-                                </span>
-                              </button>
-                            );
-                          }
-                        )}
-                      </div>
-                    </div>
-
-                    {/* HORÁRIOS */}
-                    {selectedDate && (
-                      <div
-                        className="
-                          border-t
-                          border-[#76509a]/10
-                          pt-8
+                          sm:grid-cols-4
+                          md:grid-cols-5
+                          lg:grid-cols-6
                         "
                       >
-                        <div
-                          className="
-                            mb-5
-                            flex
-                            flex-col
-                            gap-2
-                            sm:flex-row
-                            sm:items-end
-                            sm:justify-between
-                          "
-                        >
-                          <div>
-                            <p
-                              className="
-                                text-xs
-                                font-semibold
-                                uppercase
-                                tracking-[0.18em]
-                                text-[#76509a]
-                              "
-                            >
-                              Etapa 2
-                            </p>
-
-                            <h3
-                              className="
-                                mt-1
-                                font-display
-                                text-2xl
-                                text-[#2f302d]
-                              "
-                            >
-                              Escolha o horário
-                            </h3>
-                          </div>
-
-                          <p
+                        {(
+                          slotsByDate.get(
+                            selectedDate
+                          ) ?? []
+                        ).length === 0 ? (
+                          <div
                             className="
-                              text-sm
-                              capitalize
-                              text-[#77716c]
+                              col-span-3
+                              rounded-[16px]
+                              border
+                              border-[#76509a]/10
+                              bg-[#faf7fb]
+                              px-4
+                              py-6
+                              text-center
+                              sm:col-span-4
+                              md:col-span-5
+                              lg:col-span-6
                             "
                           >
-                            {formatDateLong(
-                              selectedDate
-                            )}
-                          </p>
-                        </div>
+                            <p
+                              className="
+                                text-sm
+                                font-semibold
+                                text-[#5f5961]
+                              "
+                            >
+                              Nenhum horário cadastrado
+                              para este dia.
+                            </p>
 
-                        <div
-                          className="
-                            grid
-                            grid-cols-3
-                            gap-3
-                            sm:grid-cols-4
-                            md:grid-cols-5
-                            lg:grid-cols-6
-                          "
-                        >
-                          {(
+                            <p
+                              className="
+                                mt-1
+                                text-xs
+                                leading-5
+                                text-[#8b848d]
+                              "
+                            >
+                              Deslize os dias acima e
+                              escolha outra data.
+                            </p>
+                          </div>
+                        ) : (
+                          (
                             slotsByDate.get(
                               selectedDate
                             ) ?? []
@@ -1162,7 +1243,7 @@ export default function BookingForm() {
                                   }}
                                   className={`
                                     relative
-                                    min-h-[58px]
+                                    min-h-[62px]
                                     rounded-[15px]
                                     border
                                     px-3
@@ -1182,8 +1263,8 @@ export default function BookingForm() {
                                   <span
                                     className="
                                       block
-                                      text-sm
-                                      font-semibold
+                                      text-[15px]
+                                      font-bold
                                     "
                                   >
                                     {slot.slot_time.slice(
@@ -1211,12 +1292,13 @@ export default function BookingForm() {
                                 </button>
                               );
                             }
-                          )}
-                        </div>
+                          )
+                        )}
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {error && (
                 <p
