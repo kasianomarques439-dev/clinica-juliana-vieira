@@ -14,7 +14,7 @@ export default function Hero() {
         <div
           className="
             relative
-            min-h-[405px]
+            min-h-[420px]
             overflow-hidden
             border-b
             border-[#76509a]/10
@@ -24,7 +24,7 @@ export default function Hero() {
             to-[#ead8e9]
           "
         >
-          {/* brilho de fundo */}
+          {/* brilho suave de fundo */}
           <div
             aria-hidden="true"
             className="
@@ -35,7 +35,7 @@ export default function Hero() {
               h-72
               w-72
               rounded-full
-              bg-[#cfaee0]/30
+              bg-[#cfaee0]/22
               blur-3xl
             "
           />
@@ -45,9 +45,9 @@ export default function Hero() {
             className="
               absolute
               bottom-0
-              right-[-35px]
+              right-0
               top-0
-              w-[58%]
+              w-[50%]
             "
           >
             <Image
@@ -55,35 +55,20 @@ export default function Hero() {
               alt="Procedimento estético"
               fill
               priority
-              sizes="58vw"
-              className="
-                object-cover
-                object-center
-              "
+              sizes="50vw"
+              className="object-cover object-center"
             />
 
-            {/* integração da foto com o fundo */}
-            <div
-              aria-hidden="true"
-              className="
-                absolute
-                inset-0
-                bg-gradient-to-r
-                from-[#fbf5f1]
-                via-[#fbf5f1]/10
-                to-transparent
-              "
-            />
-
+            {/* apenas leve suavização embaixo */}
             <div
               aria-hidden="true"
               className="
                 absolute
                 inset-x-0
                 bottom-0
-                h-24
+                h-20
                 bg-gradient-to-t
-                from-[#fbf5f1]
+                from-[#fbf5f1]/70
                 to-transparent
               "
             />
@@ -95,12 +80,12 @@ export default function Hero() {
               relative
               z-10
               flex
-              min-h-[405px]
-              w-[59%]
+              min-h-[420px]
+              w-[52%]
               flex-col
               justify-center
               px-5
-              pb-5
+              pb-6
               pt-8
             "
           >
@@ -119,11 +104,12 @@ export default function Hero() {
 
             <h1
               className="
+                max-w-[180px]
                 font-display
-                text-[32px]
+                text-[28px]
                 font-semibold
-                leading-[1.02]
-                tracking-[-0.025em]
+                leading-[0.98]
+                tracking-[-0.03em]
                 text-[#4f2d60]
               "
             >
@@ -139,17 +125,17 @@ export default function Hero() {
             <p
               className="
                 mt-4
-                max-w-[205px]
+                max-w-[180px]
                 text-[11px]
                 font-medium
-                leading-[1.65]
+                leading-[1.7]
                 text-[#5f5860]
               "
             >
               Procedimentos estéticos seguros e
-              personalizados para realçar sua beleza
-              natural com harmonia e resultados que
-              valorizam você.
+              personalizados para realçar sua
+              beleza natural com harmonia e
+              resultados que valorizam você.
             </p>
 
             <a
@@ -244,8 +230,8 @@ export default function Hero() {
             aria-hidden="true"
             className="
               absolute
-              bottom-5
-              right-12
+              bottom-6
+              right-6
               z-20
               flex
               h-[62px]
@@ -255,7 +241,7 @@ export default function Hero() {
               rounded-full
               border
               border-[#76509a]/25
-              bg-[#fffaf4]/65
+              bg-[#fffaf4]/82
               shadow-sm
               backdrop-blur-sm
             "
