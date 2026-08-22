@@ -1,390 +1,449 @@
-"use client";
+import Image from "next/image";
 
-import { useState } from "react";
-
-const LINKS = [
-  {
-    label: "Início",
-    href: "#inicio",
-  },
-  {
-    label: "Procedimentos",
-    href: "#procedimentos",
-  },
-  {
-    label: "Agendamento",
-    href: "#agendar",
-  },
-  {
-    label: "Instagram",
-    href: "#instagram",
-  },
-];
-
-export default function Header() {
-  const [open, setOpen] = useState(false);
-
+export default function Hero() {
   return (
-    <header className="absolute inset-x-0 top-0 z-50 w-full">
-      <div
-        className="
-          mx-auto
-          w-full
-          max-w-[1500px]
-          px-3
-          pt-3
-          sm:px-6
-          md:px-8
-          lg:px-10
-        "
-      >
+    <section
+      id="inicio"
+      className="relative overflow-hidden bg-[#fbf7f2]"
+    >
+      {/* ===================================================== */}
+      {/* MOBILE                                                */}
+      {/* ===================================================== */}
+
+      <div className="relative pt-[94px] lg:hidden">
         <div
           className="
-            flex
-            min-h-[70px]
-            items-center
-            justify-between
-            gap-4
-            rounded-[22px]
-            border
+            relative
+            min-h-[405px]
+            overflow-hidden
+            border-b
             border-[#76509a]/10
-            bg-[#fffaf4]/95
-            px-4
-            shadow-[0_10px_35px_rgba(72,43,91,0.07)]
-            backdrop-blur-xl
-
-            sm:px-5
-            lg:min-h-[74px]
-            lg:px-6
+            bg-gradient-to-br
+            from-[#fbf5f1]
+            via-[#faf1f5]
+            to-[#ead8e9]
           "
         >
-          {/* LOGO */}
-          <a
-            href="#inicio"
-            aria-label="Juliana Vieira - Início"
+          {/* brilho de fundo */}
+          <div
+            aria-hidden="true"
             className="
-              flex
-              min-w-0
-              items-center
-              gap-3
+              pointer-events-none
+              absolute
+              -right-16
+              -top-10
+              h-72
+              w-72
+              rounded-full
+              bg-[#cfaee0]/30
+              blur-3xl
+            "
+          />
+
+          {/* FOTO */}
+          <div
+            className="
+              absolute
+              bottom-0
+              right-[-35px]
+              top-0
+              w-[58%]
             "
           >
-            {/* MONOGRAMA JV */}
-            <div
+            <Image
+              src="/images/procedimentos/botox.png"
+              alt="Procedimento estético"
+              fill
+              priority
+              sizes="58vw"
               className="
-                relative
-                flex
-                h-[48px]
-                w-[48px]
-                shrink-0
-                items-center
-                justify-center
-                rounded-[15px]
-                border
-                border-[#9c78b7]/35
-                bg-gradient-to-br
-                from-white
-                to-[#faf3fb]
-                shadow-[0_4px_12px_rgba(85,51,108,0.08)]
+                object-cover
+                object-center
+              "
+            />
 
-                sm:h-[50px]
-                sm:w-[50px]
+            {/* integração da foto com o fundo */}
+            <div
+              aria-hidden="true"
+              className="
+                absolute
+                inset-0
+                bg-gradient-to-r
+                from-[#fbf5f1]
+                via-[#fbf5f1]/10
+                to-transparent
+              "
+            />
+
+            <div
+              aria-hidden="true"
+              className="
+                absolute
+                inset-x-0
+                bottom-0
+                h-24
+                bg-gradient-to-t
+                from-[#fbf5f1]
+                to-transparent
+              "
+            />
+          </div>
+
+          {/* TEXTO */}
+          <div
+            className="
+              relative
+              z-10
+              flex
+              min-h-[405px]
+              w-[59%]
+              flex-col
+              justify-center
+              px-5
+              pb-5
+              pt-8
+            "
+          >
+            <p
+              className="
+                mb-3
+                text-[9px]
+                font-bold
+                uppercase
+                tracking-[0.19em]
+                text-[#76509a]
               "
             >
-              <div className="relative flex items-center justify-center">
-                <span
-                  className="
-                    relative
-                    z-10
-                    font-display
-                    text-[27px]
-                    font-medium
-                    leading-none
-                    tracking-[-0.12em]
-                    text-[#6c4389]
+              Realce sua melhor versão
+            </p>
 
-                    sm:text-[29px]
-                  "
-                >
-                  J
-                </span>
+            <h1
+              className="
+                font-display
+                text-[32px]
+                font-semibold
+                leading-[1.02]
+                tracking-[-0.025em]
+                text-[#4f2d60]
+              "
+            >
+              Beleza que
+              <br />
+              transforma,
+              <br />
+              confiança que
+              <br />
+              permanece.
+            </h1>
 
-                <span
-                  className="
-                    relative
-                    -ml-[2px]
-                    mt-[3px]
-                    font-display
-                    text-[24px]
-                    font-medium
-                    italic
-                    leading-none
-                    tracking-[-0.10em]
-                    text-[#8a64a5]
+            <p
+              className="
+                mt-4
+                max-w-[205px]
+                text-[11px]
+                font-medium
+                leading-[1.65]
+                text-[#5f5860]
+              "
+            >
+              Procedimentos estéticos seguros e
+              personalizados para realçar sua beleza
+              natural com harmonia e resultados que
+              valorizam você.
+            </p>
 
-                    sm:text-[26px]
-                  "
-                >
-                  V
-                </span>
-
-                {/* detalhe fino do monograma */}
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 60 25"
-                  fill="none"
-                  className="
-                    pointer-events-none
-                    absolute
-                    -right-[8px]
-                    -top-[7px]
-                    h-[18px]
-                    w-[35px]
-                  "
-                >
-                  <path
-                    d="M2 19C15 18 21 4 34 5C43 6 47 10 57 2"
-                    stroke="#8b65a6"
-                    strokeWidth="1.4"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </div>
-            </div>
-
-            {/* NOME */}
-            <div className="min-w-0">
-              <p
-                className="
-                  whitespace-nowrap
-                  font-display
-                  text-[18px]
-                  font-medium
-                  leading-[1]
-                  tracking-[0.01em]
-                  text-[#5f3a78]
-
-                  sm:text-[21px]
-                "
-              >
-                Juliana Vieira
-              </p>
-
-              <div
-                className="
-                  mt-[5px]
-                  flex
-                  items-center
-                  gap-2
-                "
-              >
-                <span
-                  aria-hidden="true"
-                  className="
-                    hidden
-                    h-px
-                    w-4
-                    bg-[#b698c9]
-                    sm:block
-                  "
-                />
-
-                <p
-                  className="
-                    whitespace-nowrap
-                    text-[7px]
-                    font-semibold
-                    uppercase
-                    tracking-[0.27em]
-                    text-[#8b6ba0]
-
-                    sm:text-[8px]
-                  "
-                >
-                  Farmacêutica Esteta
-                </p>
-              </div>
-            </div>
-          </a>
-
-          {/* MENU DESKTOP */}
-          <nav className="hidden items-center gap-7 lg:flex xl:gap-9">
-            {LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="
-                  relative
-                  text-[13px]
-                  font-semibold
-                  text-[#625867]
-                  transition
-                  duration-200
-
-                  after:absolute
-                  after:-bottom-2
-                  after:left-1/2
-                  after:h-px
-                  after:w-0
-                  after:-translate-x-1/2
-                  after:bg-[#76509a]
-                  after:transition-all
-                  after:duration-300
-
-                  hover:text-[#704093]
-                  hover:after:w-full
-                "
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
-
-          {/* AÇÕES */}
-          <div className="flex items-center gap-2">
             <a
               href="#agendar"
               className="
-                hidden
-                min-h-[46px]
+                mt-5
+                inline-flex
+                min-h-[44px]
+                w-fit
+                items-center
+                justify-center
+                gap-2
+                rounded-[8px]
+                bg-[#704093]
+                px-4
+                text-[11px]
+                font-bold
+                text-white
+                shadow-[0_10px_24px_rgba(90,52,116,0.22)]
+              "
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4"
+                aria-hidden="true"
+              >
+                <rect
+                  x="4"
+                  y="6"
+                  width="16"
+                  height="14"
+                  rx="2"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                />
+                <path
+                  d="M8 3V8M16 3V8M4 10H20"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                />
+              </svg>
+
+              Agende seu horário
+            </a>
+
+            <div
+              className="
+                mt-4
+                flex
+                max-w-[190px]
+                items-start
+                gap-2
+              "
+            >
+              <div
+                className="
+                  mt-[1px]
+                  flex
+                  h-5
+                  w-5
+                  shrink-0
+                  items-center
+                  justify-center
+                  rounded-full
+                  border
+                  border-[#76509a]/25
+                  text-[#76509a]
+                "
+              >
+                <span className="text-[9px]">✦</span>
+              </div>
+
+              <p
+                className="
+                  text-[9px]
+                  font-medium
+                  leading-[1.5]
+                  text-[#5c565d]
+                "
+              >
+                Atendimento humanizado
+                <br />
+                e personalizado
+              </p>
+            </div>
+          </div>
+
+          {/* SELO JV */}
+          <div
+            aria-hidden="true"
+            className="
+              absolute
+              bottom-5
+              right-12
+              z-20
+              flex
+              h-[62px]
+              w-[62px]
+              items-center
+              justify-center
+              rounded-full
+              border
+              border-[#76509a]/25
+              bg-[#fffaf4]/65
+              shadow-sm
+              backdrop-blur-sm
+            "
+          >
+            <span
+              className="
+                font-display
+                text-[25px]
+                font-semibold
+                italic
+                text-[#76509a]
+              "
+            >
+              JV
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ===================================================== */}
+      {/* DESKTOP — MANTÉM O ESTILO ATUAL                       */}
+      {/* ===================================================== */}
+
+      <div
+        className="
+          relative
+          mx-auto
+          hidden
+          min-h-[720px]
+          w-full
+          max-w-[1500px]
+          grid-cols-[0.96fr_1.04fr]
+          items-center
+          gap-8
+          px-10
+          pb-20
+          pt-36
+          lg:grid
+        "
+      >
+        <div className="max-w-[660px]">
+          <div
+            className="
+              inline-flex
+              items-center
+              gap-2
+              rounded-full
+              border
+              border-[#76509a]/15
+              bg-white/80
+              px-4
+              py-2
+              text-[11px]
+              font-bold
+              uppercase
+              tracking-[0.20em]
+              text-[#704093]
+              shadow-sm
+            "
+          >
+            <span
+              className="
+                h-1.5
+                w-1.5
+                rounded-full
+                bg-[#d2ad77]
+              "
+            />
+
+            Harmonização & estética avançada
+          </div>
+
+          <h1
+            className="
+              mt-6
+              font-display
+              text-[72px]
+              font-semibold
+              leading-[0.98]
+              tracking-[-0.035em]
+              text-[#4f2d60]
+              xl:text-[78px]
+            "
+          >
+            Beleza que respeita
+            <span className="block text-[#76509a]">
+              a sua essência.
+            </span>
+          </h1>
+
+          <p
+            className="
+              mt-6
+              max-w-[560px]
+              text-[17px]
+              font-medium
+              leading-7
+              text-[#6c646d]
+            "
+          >
+            Procedimentos estéticos personalizados,
+            com cuidado, equilíbrio e atenção aos
+            detalhes para valorizar sua beleza de
+            forma natural.
+          </p>
+
+          <div className="mt-8 flex gap-3">
+            <a
+              href="#agendar"
+              className="
+                inline-flex
+                min-h-[54px]
                 items-center
                 justify-center
                 rounded-full
                 bg-[#704093]
-                px-5
-                text-[13px]
+                px-7
+                text-[14px]
                 font-bold
                 text-white
-                shadow-[0_10px_24px_rgba(86,48,112,0.22)]
-                transition
-
-                hover:-translate-y-0.5
-                hover:bg-[#5d347b]
-
-                sm:inline-flex
+                shadow-[0_14px_30px_rgba(86,48,112,0.24)]
               "
             >
-              Agende seu horário
-
-              <span
-                aria-hidden="true"
-                className="ml-2 text-lg leading-none"
-              >
-                →
-              </span>
+              Agende sua avaliação
+              <span className="ml-3 text-xl">→</span>
             </a>
 
-            {/* BOTÃO MENU MOBILE */}
-            <button
-              type="button"
-              onClick={() =>
-                setOpen((current) => !current)
-              }
-              aria-label={
-                open ? "Fechar menu" : "Abrir menu"
-              }
-              aria-expanded={open}
-              aria-controls="mobile-menu"
+            <a
+              href="#procedimentos"
               className="
-                flex
-                h-11
-                w-11
-                shrink-0
+                inline-flex
+                min-h-[54px]
                 items-center
                 justify-center
                 rounded-full
                 border
-                border-[#76509a]/15
-                bg-white
-                text-[22px]
-                font-semibold
+                border-[#76509a]/25
+                bg-white/70
+                px-7
+                text-[14px]
+                font-bold
                 text-[#704093]
-                shadow-sm
-                transition
-
-                hover:bg-[#76509a]/5
-
-                lg:hidden
               "
             >
-              {open ? "×" : "☰"}
-            </button>
+              Ver procedimentos
+            </a>
           </div>
         </div>
 
-        {/* MENU MOBILE */}
-        {open && (
+        <div className="relative mx-auto w-full">
           <div
-            id="mobile-menu"
             className="
-              mt-2
+              relative
+              mx-auto
+              aspect-[4/4.5]
+              w-full
+              max-w-[590px]
               overflow-hidden
-              rounded-[20px]
+              rounded-[46%_46%_24%_24%/26%_26%_12%_12%]
               border
-              border-[#76509a]/10
-              bg-[#fffaf4]/[0.98]
-              p-2
-              shadow-[0_18px_45px_rgba(72,43,91,0.12)]
-              backdrop-blur-xl
-
-              lg:hidden
+              border-white/90
+              bg-gradient-to-br
+              from-[#efe3f3]
+              via-[#fff8f2]
+              to-[#ead9e1]
+              shadow-[0_35px_90px_rgba(79,45,96,0.16)]
             "
           >
-            <nav className="flex flex-col">
-              {LINKS.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
+            <div className="absolute inset-0 flex items-center justify-center p-14">
+              <div className="relative h-full w-full">
+                <Image
+                  src="/images/clinica.jpeg"
+                  alt="Juliana Vieira - Farmacêutica Esteta"
+                  fill
+                  priority
+                  sizes="580px"
                   className="
-                    rounded-[14px]
-                    px-4
-                    py-3.5
-                    text-[15px]
-                    font-semibold
-                    text-[#5d5260]
-                    transition
-
-                    hover:bg-[#76509a]/[0.07]
-                    hover:text-[#704093]
+                    select-none
+                    object-contain
+                    object-center
+                    mix-blend-multiply
                   "
-                >
-                  {link.label}
-                </a>
-              ))}
-
-              <a
-                href="#agendar"
-                onClick={() => setOpen(false)}
-                className="
-                  mt-1
-                  inline-flex
-                  min-h-[48px]
-                  items-center
-                  justify-center
-                  rounded-[15px]
-                  bg-[#704093]
-                  px-5
-                  text-sm
-                  font-bold
-                  text-white
-
-                  sm:hidden
-                "
-              >
-                Agende seu horário
-
-                <span
-                  aria-hidden="true"
-                  className="ml-2 text-lg"
-                >
-                  →
-                </span>
-              </a>
-            </nav>
+                />
+              </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
-    </header>
+    </section>
   );
 }
